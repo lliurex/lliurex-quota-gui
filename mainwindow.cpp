@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "qgraphicsproxywidget.h"
 #include "qdebug.h"
+#include "n4d.cpp"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -23,11 +24,20 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::ChangeStack(){
     ui->stackedWidget->setCurrentIndex(1);
 }
+void runN4D(){
+    qDebug() << "running n4d call";
+    N4D n4d;
+    vector<string> param;
+    string a = n4d.make_call("https://localhost:9779","netadmin","lliurex","SlapdManager","test",param);
+    a = ">>>> end n4d call >>>" + a;
+    qDebug() << a.data();
+}
 void MainWindow::cellChanged(int row, int col){
     qDebug() << "Cell " << col << "," << row << " clicked !" << endl;
     if (col == 0){
         ui->stackedWidget->setCurrentIndex(0);
     }else{
+        runN4D();
         qDebug() << "Action on col 1 don't work";
     }
 

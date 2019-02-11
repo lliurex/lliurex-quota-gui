@@ -4,6 +4,7 @@
 #
 #-------------------------------------------------
 
+unix|win32: CONFIG   += c++1z
 QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -26,11 +27,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    examples.cpp
+    examples.cpp \
+    n4d.cpp
 
 HEADERS += \
         mainwindow.h \
-    examples.h
+    examples.h \
+    n4d.h
 
 FORMS += \
         mainwindow.ui
@@ -38,3 +41,7 @@ FORMS += \
 DISTFILES += \
     banner.png
 
+RESOURCES += \
+    resources.qrc
+
+unix|win32: LIBS += -lxmlrpc++ -lxmlrpc -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_util -lxmlrpc_client++
