@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "n4d.h"
 
 namespace Ui {
 class MainWindow;
@@ -23,6 +24,8 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
+    QString n4duser,n4dpwd;
+    N4D* n4d;
 };
 
 #endif // MAINWINDOW_H

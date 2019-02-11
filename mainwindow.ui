@@ -88,7 +88,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page0">
        <property name="sizePolicy">
@@ -151,7 +151,11 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="txt_pwd"/>
+           <widget class="QLineEdit" name="txt_usu">
+            <property name="clearButtonEnabled">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="lbl_pwd">
@@ -161,7 +165,14 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QLineEdit" name="txt_usu"/>
+           <widget class="QLineEdit" name="txt_pwd">
+            <property name="echoMode">
+             <enum>QLineEdit::Password</enum>
+            </property>
+            <property name="clearButtonEnabled">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item row="2" column="1">
            <widget class="QWidget" name="widget" native="true">

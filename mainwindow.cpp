@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->table_quotas->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->logo->setPixmap(QPixmap(QString("/home/lliurex/banner.png")));
     ui->logo->setAlignment(Qt::AlignCenter);
+    n4d = new N4D();
 
     qDebug() << getCellData(1,1);
     setCellData(1,1,new QString("Hello"));
@@ -22,15 +23,21 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::ChangeStack(){
-    ui->stackedWidget->setCurrentIndex(1);
+    n4duser = ui->txt_usu->text();
+    n4dpwd = ui->txt_pwd->text();
+    if (n4d->validate_user(n4duser.toStdString(),n4dpwd.toStdString())){
+        ui->stackedWidget->setCurrentIndex(1);
+    }else{
+        qDebug() << "Failed auth " << n4duser << n4dpwd << endl;
+    }
 }
 void runN4D(){
     qDebug() << "running n4d call";
-    N4D n4d;
+    /*N4D n4d;
     vector<string> param;
     string a = n4d.make_call("https://localhost:9779","netadmin","lliurex","SlapdManager","test",param);
     a = ">>>> end n4d call >>>" + a;
-    qDebug() << a.data();
+    qDebug() << a.data();*/
 }
 void MainWindow::cellChanged(int row, int col){
     qDebug() << "Cell " << col << "," << row << " clicked !" << endl;
@@ -55,4 +62,5 @@ void MainWindow::setCellData(int x, int y, QString *str){
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete n4d;
 }
