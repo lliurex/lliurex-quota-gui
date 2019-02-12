@@ -343,7 +343,7 @@
    <sender>btn_signin</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
-   <slot>ChangeStack()</slot>
+   <slot>InitValidation()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>631</x>
@@ -355,9 +355,41 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>txt_pwd</sender>
+   <signal>returnPressed()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>InitValidation()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>439</x>
+     <y>343</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>txt_usu</sender>
+   <signal>returnPressed()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>InitValidation()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>439</x>
+     <y>306</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
-  <slot>ChangeStack()</slot>
   <slot>CellChanged()</slot>
+  <slot>InitValidation()</slot>
  </slots>
 </ui>

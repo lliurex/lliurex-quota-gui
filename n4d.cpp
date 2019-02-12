@@ -12,7 +12,13 @@
 #include <xmlrpc-c/client_simple.hpp>
 #include "n4d.h"
 
+#include <QString>
 using namespace std;
+
+N4D::N4D(){
+}
+N4D::~N4D(){
+}
 
 
 string N4D::toString(xmlrpc_c::value item,bool exporting=false){
@@ -330,25 +336,12 @@ void N4D::process_params(xmlrpc_c::paramList &callParams, vector<string> params)
     }
 }
 
-bool N4D::validate_user(string authUser, string authPwd){
-    string ret = make_call(authUser,authPwd,"","validate_user",true);
-    qDebug() << "Validation result: " << ret.data();
-    std::transform(ret.begin(),ret.end(),ret.begin(),::tolower);
-    if (ret.find("true") == string::npos){
-        return false;
-    }else{
-        return true;
-    }
+string N4D::validate_user(string authUser, string authPwd){
+    return make_call(authUser,authPwd,"","validate_user",true);
 }
 
-bool N4D::validate_user(string n4dHost,string authUser, string authPwd){
-    string ret = make_call(n4dHost,authUser,authPwd,"","validate_user",true);
-    std::transform(ret.begin(),ret.end(),ret.begin(),::tolower);
-    if (ret.find("true") == string::npos){
-        return false;
-    }else{
-        return true;
-    }
+string N4D::validate_user(string n4dHost,string authUser, string authPwd){
+    return make_call(n4dHost,authUser,authPwd,"","validate_user",true);
 }
 
 string N4D::make_anon_call(string className="", string methodName="", bool auth_as_param=false){
@@ -428,7 +421,8 @@ string N4D::make_call(string n4dHost="", string authUser="", string authPwd="", 
     // Example return if a simple call is used
     // string const res(xmlrpc_c::value_array(myRpcP->getResult()));
 
-     return toString(returned,true);
+    string ret = toString(returned,true);
+    return ret;
 
     // Example simple call with two params
     //myClient.call(serverUrl, methodName, "ii", &result, 5, 7);
@@ -436,7 +430,23 @@ string N4D::make_call(string n4dHost="", string authUser="", string authPwd="", 
     //string const res = xmlrpc_c::value_string(result);
 }
 
+QtN4DWorker::QtN4DWorker(){
+    n4d = new N4D();
+}
 
+QtN4DWorker::~QtN4DWorker(){
+    delete n4d;
+}
+
+void QtN4DWorker::set_auth(QString user_param, QString pwd_param){
+    user = user_param;
+    pwd = pwd_param;
+}
+
+void QtN4DWorker::validate_user(){
+    string res = n4d->validate_user(user.toStdString(),pwd.toStdString());
+    emit n4d_call_completed(QString(res.data()));
+}
 
 //    try {
 //    } catch (exception const& e) {

@@ -16,11 +16,16 @@
 
 using namespace std;
 
+#include <QObject>
+
 class N4D {
+
 public:
+    N4D();
+    ~N4D();
     string toString(xmlrpc_c::value item,bool exporting);
-    bool validate_user(string authUser, string authPwd);
-    bool validate_user(string n4dHost, string authUser, string authPwd);
+    string validate_user(string n4dHost, string authUser, string authPwd);
+    string validate_user(string authUser, string authPwd);
     string make_anon_call(string className, string methodName, bool auth_as_param);
     string make_anon_call(string n4dHost, string className, string methodName, bool auth_as_param);
     string make_anon_call(string className, string methodName, vector<string> params, bool auth_as_param);
@@ -36,6 +41,25 @@ private:
     xmlrpc_c::value_array parse_array(string param);
     string clean_extra_spaces(string s);
     void process_params(xmlrpc_c::paramList &callParams, vector<string> params);
+};
+
+class QtN4DWorker: public QObject{
+    Q_OBJECT
+
+public:
+    QtN4DWorker();
+    ~QtN4DWorker();
+    void set_auth(QString user_param, QString pwd_param);
+
+signals:
+    void n4d_call_completed(QString result);
+
+public slots:
+    void validate_user();
+
+private:
+    N4D* n4d;
+    QString user,pwd;
 };
 
 #endif // N4D_H

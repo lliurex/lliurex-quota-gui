@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QThread>
+
 #include "n4d.h"
 
 namespace Ui {
@@ -19,13 +21,13 @@ public:
     QString getCellData(int x, int y);
 
 public slots:
-    void ChangeStack();
+    void CheckValidation(QString result);
+    void InitValidation();
     void cellChanged(int row, int col);
 
 private:
     Ui::MainWindow *ui;
-    QString n4duser,n4dpwd;
-    N4D* n4d;
+    QThread* local_thread;
 };
 
 #endif // MAINWINDOW_H
