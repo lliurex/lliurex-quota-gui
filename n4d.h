@@ -43,19 +43,27 @@ private:
     void process_params(xmlrpc_c::paramList &callParams, vector<string> params);
 };
 
+namespace N4DWorker{
+    class QtN4DWorker;
+}
+
 class QtN4DWorker: public QObject{
     Q_OBJECT
 
 public:
+    enum class Methods { LOGIN, GET_DATA };
+    Q_ENUM(Methods)
+
     QtN4DWorker();
     ~QtN4DWorker();
     void set_auth(QString user_param, QString pwd_param);
 
 signals:
-    void n4d_call_completed(QString result);
+    void n4d_call_completed(QtN4DWorker::Methods from, QString result);
 
 public slots:
     void validate_user();
+    void get_table_data();
 
 private:
     N4D* n4d;

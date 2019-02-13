@@ -28,12 +28,14 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
     examples.cpp \
-    n4d.cpp
+    n4d.cpp \
+    datamodel.cpp
 
 HEADERS += \
         mainwindow.h \
     examples.h \
-    n4d.h
+    n4d.h \
+    datamodel.h
 
 FORMS += \
         mainwindow.ui

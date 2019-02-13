@@ -329,6 +329,16 @@
           </item>
          </widget>
         </item>
+        <item>
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string>Update</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QGridLayout" name="gridLayout"/>
+        </item>
        </layout>
       </widget>
      </widget>

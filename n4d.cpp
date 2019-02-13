@@ -431,6 +431,7 @@ string N4D::make_call(string n4dHost="", string authUser="", string authPwd="", 
 }
 
 QtN4DWorker::QtN4DWorker(){
+    qRegisterMetaType<QtN4DWorker::Methods>("Methods");
     n4d = new N4D();
 }
 
@@ -445,7 +446,12 @@ void QtN4DWorker::set_auth(QString user_param, QString pwd_param){
 
 void QtN4DWorker::validate_user(){
     string res = n4d->validate_user(user.toStdString(),pwd.toStdString());
-    emit n4d_call_completed(QString(res.data()));
+    emit n4d_call_completed(Methods::LOGIN,QString(res.data()));
+}
+
+void QtN4DWorker::get_table_data(){
+    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","get_quotas",false);
+    emit n4d_call_completed(Methods::GET_DATA,QString(res.data()));
 }
 
 //    try {
