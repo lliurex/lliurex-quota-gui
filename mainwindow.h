@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QThread>
+#include <QTableWidgetItem>
 
 #include "n4d.h"
 #include "datamodel.h"
@@ -26,8 +27,10 @@ public slots:
 
     void InitValidation();
     void InitPopulateTable();
+    void apply_table_to_model();
 
-    void cellChanged(int row, int col);
+    void cell_action(int row, int col);
+    void cell_changed(int row,int col);
 
 private:
     Ui::MainWindow *ui;
@@ -38,6 +41,7 @@ private:
     void InitN4DCall(QtN4DWorker::Methods method);
     void CheckValidation(QString result); //cb InitValidation
     void CompletePopulate(QString result); //cb InitPopulateTable
+    void InitializeTable();
 };
 
 #endif // MAINWINDOW_H

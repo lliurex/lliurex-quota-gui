@@ -88,7 +88,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="page0">
        <property name="sizePolicy">
@@ -152,6 +152,9 @@
           </item>
           <item row="0" column="1">
            <widget class="QLineEdit" name="txt_usu">
+            <property name="text">
+             <string>netadmin</string>
+            </property>
             <property name="clearButtonEnabled">
              <bool>true</bool>
             </property>
@@ -166,6 +169,9 @@
           </item>
           <item row="1" column="1">
            <widget class="QLineEdit" name="txt_pwd">
+            <property name="text">
+             <string>lliurex</string>
+            </property>
             <property name="echoMode">
              <enum>QLineEdit::Password</enum>
             </property>
@@ -330,9 +336,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QPushButton" name="applyButton">
           <property name="text">
-           <string>Update</string>
+           <string>Apply</string>
           </property>
          </widget>
         </item>
@@ -397,9 +403,26 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>applyButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>apply_table_to_model()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>399</x>
+     <y>560</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>CellChanged()</slot>
   <slot>InitValidation()</slot>
+  <slot>apply_table_to_model()</slot>
  </slots>
 </ui>

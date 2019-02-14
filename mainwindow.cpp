@@ -18,15 +18,13 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->table_quotas->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->logo->setPixmap(QPixmap(QString("/home/lliurex/banner.png")));
     ui->logo->setAlignment(Qt::AlignCenter);
-    for (int i=0 ; i < ui->table_quotas->rowCount(); i++){
-        QTableWidgetItem *item = ui->table_quotas->item(i,0);
-        item->setFlags(item->flags() ^ Qt::ItemIsEditable );
-    }
+
 //    qDebug() << getCellData(1,1);
 //    setCellData(1,1,new QString("Hello"));
 //    qDebug() << getCellData(1,1);
 
-    connect(ui->table_quotas, SIGNAL(cellDoubleClicked(int,int)), this, SLOT(cellChanged(int,int)));
+    connect(ui->table_quotas, SIGNAL(cellDoubleClicked(int,int)), this, SLOT(cell_action(int,int)));
+    connect(ui->table_quotas, SIGNAL(cellActivated(int,int)), this, SLOT(cell_changed(int,int)));
 }
 
 void MainWindow::CheckValidation(QString result){
@@ -58,33 +56,61 @@ void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned){
     };
 }
 
+void MainWindow::InitializeTable(){
+    //remove all rows & columns
+    ui->table_quotas->model()->removeRows(0,ui->table_quotas->model()->rowCount());
+    ui->table_quotas->model()->removeColumns(0,ui->table_quotas->model()->columnCount());
+
+    UserData x;
+    QStringList headers;
+
+    for (auto const& name: x.field_names){
+        ui->table_quotas->model()->insertColumn(0);
+        headers << QString::fromStdString(name);
+    }
+
+    ui->table_quotas->setHorizontalHeaderLabels(headers);
+}
+
 void MainWindow::CompletePopulate(QString returned){
      map<string,UserData> table;
      qDebug() << "Completing table populate !";
      model->LoadUsersFromString(returned.toStdString());
      table = model->getTableData();
-     /*ui->table_quotas->model()->insertRow(0);
-     ui->table_quotas->model()->insertRow(0);
-     ui->table_quotas->model()->insertRow(0);
-     ui->table_quotas->model()->insertRow(0);
-     ui->table_quotas->model()->insertRow(0);*/
-     ui->table_quotas->model()->removeRows(0,2);
-     unsigned i=0;
+
+     InitializeTable();
+     QStringList non_editable_items = {"name","spaceused","fileused","spacestatus","filestatus"};
+     vector<int> non_editable;
+     for (int i=0; i< ui->table_quotas->columnCount(); i++){
+         QString label = ui->table_quotas->horizontalHeaderItem(i)->text();
+         if (non_editable_items.contains(label)){
+             non_editable.push_back(i);
+             continue;
+         }
+     }
+
+     unsigned int i=0;
      for (auto const& [key,value]: table){
          ui->table_quotas->model()->insertRow(ui->table_quotas->model()->rowCount());
 
          UserData data = value;
          string k=key;
 
-         for (unsigned int j=0; j< 2; j++){
-              if (j == 0){
-                 k ="name";
-             }else{
-                 k = "spaceused";
-             }
-             setCellData(i,j,new QString(QString::fromStdString(data.getField(k))));
+         unsigned int j=0;
+         QString *pstr;
+         for (auto const& name : data.field_names){
+            string item = data.getField(name);
+            pstr = new QString(QString::fromStdString(item));
+            setCellData(i,j++,pstr);
          }
          i++;
+     }
+
+     for (int i=0 ; i < ui->table_quotas->rowCount(); i++){
+         for (auto const& ncol: non_editable){
+             QTableWidgetItem *item = ui->table_quotas->item(i,ncol);
+             item->setFlags(item->flags() ^ Qt::ItemIsEditable );
+         }
      }
 }
 
@@ -110,8 +136,6 @@ void MainWindow::InitN4DCall(QtN4DWorker::Methods method){
 }
 
 void MainWindow::InitValidation(){
-    //CheckValidation(QString("admins"));
-    //return;
     n4duser = ui->txt_usu->text();
     n4dpwd = ui->txt_pwd->text();
     if (n4duser.trimmed() == "" or n4dpwd.trimmed() == ""){
@@ -122,15 +146,15 @@ void MainWindow::InitValidation(){
     InitN4DCall(QtN4DWorker::Methods::LOGIN);
 }
 
-void MainWindow::cellChanged(int row, int col){
-    qDebug() << "Cell " << col << "," << row << " clicked !" << endl;
-    if (col == 0){
-        qDebug() << "Action on col 0 don't work";
-        //ui->stackedWidget->setCurrentIndex(0);
-    }else{
-        qDebug() << "Action on col 1 work";
+void MainWindow::cell_action(int row, int col){
+    qDebug() << "Cell " << col << "," << row << " clicked action !";
+    QTableWidgetItem *cell = ui->table_quotas->item(row,col);
+    if (cell->flags() & Qt::ItemIsEditable){
+        cell->setBackgroundColor(QColor(Qt::gray));
     }
-
+}
+void MainWindow::cell_changed(int row, int col){
+   qDebug() << "Cell " << col << "," << row << " edited!";// << " from " << older->text() << " to " << newer->text() ;
 }
 
 QString MainWindow::getCellData(int x, int y){
@@ -140,11 +164,45 @@ QString MainWindow::getCellData(int x, int y){
 }
 
 void MainWindow::setCellData(int x, int y, QString *str){
-    qDebug() << "Cell " << x << "," << y << " changed from " << getCellData(x,y) << " to " << *str << endl;
+    qDebug() << "Cell " << x << "," << y << " changed from " << getCellData(x,y) << " to " << *str ;
     ui->table_quotas->setItem(x,y,new QTableWidgetItem(*str));
     return ;
 }
+void MainWindow::apply_table_to_model(){
+    QStringList col_names;
+    bool need_update=false;
+    for(int row=0; row<ui->table_quotas->rowCount(); row++){
+        UserData x;
+        bool current_modified=false;
+        if (row == 0){
+            for(int col=0; col<ui->table_quotas->columnCount(); col++ ){
+                col_names << ui->table_quotas->horizontalHeaderItem(col)->text();
+            }
+        }
+        for(int col=0; col<ui->table_quotas->columnCount(); col++ ){
+            x.setField(col_names[col].toStdString(),ui->table_quotas->item(row,col)->text().toStdString());
+        }
+        if (model->getUser(x.getField("name")) != x){
+            qDebug() << "User " << QString::fromStdString(x.getField("name")) << " was modified!";
+            need_update = true;
+            current_modified = true;
+        }
 
+        QColor c;
+        if (current_modified){
+            c = QColor(Qt::red);
+        }else{
+            c = QColor(Qt::white);
+        }
+        for(int col=0; col<ui->table_quotas->columnCount(); col++ ){
+            QTableWidgetItem *cell = ui->table_quotas->item(row,col);
+            cell->setBackgroundColor(c);
+        }
+    }
+    if (!need_update){
+        qDebug() << "Table not modified :-)";
+    }
+}
 MainWindow::~MainWindow()
 {
     delete ui;

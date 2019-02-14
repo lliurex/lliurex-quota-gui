@@ -11,21 +11,16 @@ using namespace std;
 
 class UserData{
 public:
-    string field_names[11] = {  string("name"),
-                                string("filegrace"),
-                                string("filehardlimit"),
-                                string("filesoftlimit"),
-                                string("filestatus"),
-                                string("fileused"),
-                                string("spacegrace"),
-                                string("spacehardlimit"),
-                                string("spacesoftlimit"),
-                                string("spacestatus"),
-                                string("spaceused") };
+    vector<string> field_names;
     map<string,string> fields;
     UserData();
+
     string toString();
+    bool operator!=(UserData& udata);
+    bool operator==(UserData& udata);
+
     string getField(string fieldname);
+    void setField(string fieldname,string value);
 };
 
 class DataModelUser{
@@ -53,6 +48,7 @@ public:
     void LoadUsersFromString(string str);
     string toString();
     map<string,UserData> getTableData();
+    UserData getUser(string name);
 };
 
 #endif // DATAMODEL_H

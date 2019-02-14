@@ -95,6 +95,11 @@ void DataModel::LoadUsersFromString(string str){
         i++;
     }
 }
+
+UserData DataModel::getUser(string name){
+    return userlist.getUser(name);
+}
+
 map<string,UserData> DataModel::getTableData(){
     return userlist.getMap();
 }
@@ -145,11 +150,13 @@ UserData DataModelUser::getUser(string name){
     if (UserExists(name)){
         return list[string(name)];
     }
+    return UserData();
 }
 
 string DataModelUser::toString(){
     string str="";
     for (auto const& [key,value]: list){
+        string k = key;
         UserData data = value;
         str += data.toString() + "\n";
     }
@@ -157,9 +164,34 @@ string DataModelUser::toString(){
 }
 
 UserData::UserData(){
+    field_names.push_back(string("name"));
+    field_names.push_back(string("filegrace"));
+    field_names.push_back(string("filehardlimit"));
+    field_names.push_back(string("filesoftlimit"));
+    field_names.push_back(string("filestatus"));
+    field_names.push_back(string("fileused"));
+    field_names.push_back(string("spacegrace"));
+    field_names.push_back(string("spacehardlimit"));
+    field_names.push_back(string("spacesoftlimit"));
+    field_names.push_back(string("spacestatus"));
+    field_names.push_back(string("spaceused"));
+
     for (auto const& name: field_names){
         fields.insert(pair<string,string>(name,""));
     }
+}
+
+bool UserData::operator!=(UserData& udata){
+       return ! operator ==(udata);
+}
+
+bool UserData::operator==(UserData& udata){
+    for(auto const& name: field_names){
+        if (udata.getField(name) != fields[name] ){
+            return false;
+        }
+    }
+    return true;
 }
 
 string UserData::toString(){
@@ -173,4 +205,8 @@ string UserData::getField(string fieldname){
         }
     }
     return string();
+}
+void UserData::setField(string fieldname,string value){
+    //todo check fieldname existence
+    fields[fieldname]=value;
 }
