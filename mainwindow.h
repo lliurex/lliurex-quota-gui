@@ -26,6 +26,9 @@ public slots:
     void ProcessCallback(QtN4DWorker::Methods, QString returned);
 
     void InitValidation();
+    void InitCheckStatus();
+    void OpenEditors();
+    void ApplyChanges();
     void InitPopulateTable();
     void apply_table_to_model();
 
@@ -40,6 +43,7 @@ private:
 
     void InitN4DCall(QtN4DWorker::Methods method);
     void CheckValidation(QString result); //cb InitValidation
+    void CompleteGetStatus(QString result); //cb CheckStatus
     void CompletePopulate(QString result); //cb InitPopulateTable
     void InitializeTable();
 };

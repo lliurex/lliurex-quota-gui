@@ -41,7 +41,8 @@ FORMS += \
         mainwindow.ui
 
 DISTFILES += \
-    banner.png
+    banner.png \
+    configured.png
 
 RESOURCES += \
     resources.qrc

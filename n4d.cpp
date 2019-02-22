@@ -129,10 +129,10 @@ string N4D::toString(xmlrpc_c::value item,bool exporting=false){
             xmlrpc_c::value_struct xml_struct = xmlrpc_c::value_struct(item);
             //map<string,xmlrpc_c::value> c_map = static_cast<map<string,xmlrpc_c::value>>(xml_struct);
             map<string,xmlrpc_c::value> c_map = xml_struct.cvalue();
+            c_string = "{";
             if (exporting){
                 c_string = "struct/" +c_string;
             }
-            c_string = "{";
             if (c_map.size() != 0){
                 for (auto const& [key,val] : c_map){
                     if (exporting){
@@ -430,6 +430,9 @@ string N4D::make_call(string n4dHost="", string authUser="", string authPwd="", 
     //string const res = xmlrpc_c::value_string(result);
 }
 
+// value: any_struct->any_field=one_value, any_array[]=any_struct->any_field=one_value, any_type=any_value
+
+
 QtN4DWorker::QtN4DWorker(){
     qRegisterMetaType<QtN4DWorker::Methods>("Methods");
     n4d = new N4D();
@@ -452,6 +455,444 @@ void QtN4DWorker::validate_user(){
 void QtN4DWorker::get_table_data(){
     string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","get_quotas",false);
     emit n4d_call_completed(Methods::GET_DATA,QString(res.data()));
+}
+
+void QtN4DWorker::get_system_status(){
+    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","get_local_status",false);
+    emit n4d_call_completed(Methods::GET_STATUS,QString(res.data()));
+}
+
+n4dtree* n4dtokenparser(string str){
+    return n4dtokenparser(n4dtokenizer(str));
+}
+
+n4dtree* n4dtokenparser(list<n4dtoken*> list){
+    n4dtree* tree = new n4dtree();
+    tree->type=n4dtypetree::ROOT;
+    tree->parent=tree;
+    n4dtokenparser(list, tree);
+    return tree;
+}
+
+void n4dtokenparser(list<n4dtoken*> l, n4dtree* parent){
+    unsigned int i_array=0;
+    unsigned int i_struct=0;
+
+#ifdef _N4D_DEBUG_
+    cout << "Building tree for:" << endl;
+    for (auto const& i: l){
+        cout << i->value;
+    }
+    cout << endl ;
+#endif
+    std::list<n4dtoken*>::iterator it;
+    for (it=l.begin();it!=l.end();it++){
+        n4dtree* tree;
+        switch ((*it)->type) {
+        case n4dtypetokens::START_ARRAY:{
+            if (parent->type == n4dtypetree::TREE_ARRAY){
+                tree = new n4dtree();
+                tree->parent = parent;
+                tree->type = n4dtypetree::ARRAY_ITEM;
+                parent->childs_tree.push_back(tree);
+                parent = tree;
+            }
+            tree = new n4dtree();
+            tree->parent = parent;
+            tree->type = n4dtypetree::TREE_ARRAY;
+            parent->childs_tree.push_back(tree);
+            i_array++;
+            list<n4dtoken*> sublist;
+            list<n4dtoken*>::iterator end = it;
+            while (i_array != 0 && end != l.end()){
+                end++;
+                if( (*end)->type == n4dtypetokens::START_ARRAY ){
+                    i_array++;
+                }
+                if ( (*end)->type == n4dtypetokens::END_ARRAY ){
+                    i_array--;
+                }
+            }
+            if (end == l.end() and i_array != 0){
+                cerr << "Error building tree" << endl;
+                exit(1);
+            }
+            sublist.splice(sublist.begin(),l,std::next(it),end);
+            list<n4dtoken*>::iterator j = l.begin();
+            end++;
+            while (j != end){
+                delete (*j);
+                j++;
+            }
+            l.erase(l.begin(),end);
+            it = end;
+#ifdef _N4D_DEBUG_
+            cout << "Detected array with items: " << endl;
+            for (auto const& j2: sublist){
+                cout << j2->value;
+            }
+            cout << endl;
+#endif
+            list<n4dtoken*>::iterator i = sublist.begin();
+            while(i != sublist.end()){
+                int s_level = 0;
+                int a_level = 0;
+                int level = 0;
+                end = sublist.begin();
+                while (end != sublist.end() && (((*end)->type != n4dtypetokens::NEXT_ITEM) || (level != 0))){
+                    if ((*end)->type != n4dtypetokens::START_ARRAY){
+                        a_level++;
+                    }
+                    if ((*end)->type != n4dtypetokens::END_ARRAY){
+                        a_level--;
+                    }
+                    if ((*end)->type != n4dtypetokens::START_STRUCT){
+                        s_level++;
+                    }
+                    if ((*end)->type != n4dtypetokens::END_STRUCT){
+                        s_level--;
+                    }
+                    level = s_level + a_level;
+                    end++;
+                }
+                if (end == sublist.end()){
+#ifdef _N4D_DEBUG_
+                    cout << "Value for array item: " << endl;
+                    for (auto const& j: sublist){
+                        cout << j->value;
+                    }
+                    cout << endl << "END OF ARRAY ITEMS PARSING" << endl;;
+#endif
+                    n4dtokenparser(sublist,tree);
+                    i = end;
+                }else{
+                    list<n4dtoken*> sublist2;
+                    sublist2.splice(sublist2.begin(),sublist,sublist.begin(),end);
+#ifdef _N4D_DEBUG_
+                    cout << "Value for array item (more to come next):" << endl;
+                    for (auto const& j: sublist2){
+                        cout << j->value;
+                    }
+                    cout << endl;
+#endif
+                    i = std::next(end);
+                    delete (*end);
+                    sublist.erase(end);
+                    n4dtokenparser(sublist2,tree);
+                }
+            }
+
+            break;
+        }
+        case n4dtypetokens::START_STRUCT:{
+            if (parent->type == n4dtypetree::TREE_ARRAY){
+                tree = new n4dtree();
+                tree->parent = parent;
+                tree->type = n4dtypetree::ARRAY_ITEM;
+                parent->childs_tree.push_back(tree);
+                parent = tree;
+            }
+            tree = new n4dtree();
+            tree->parent = parent;
+            tree->type = n4dtypetree::TREE_STRUCT;
+            parent->childs_tree.push_back(tree);
+            i_struct++;
+            list<n4dtoken*> sublist;
+            list<n4dtoken*>::iterator end = it;
+            while (i_struct != 0 && end != l.end()){
+                end++;
+                if( (*end)->type == n4dtypetokens::START_STRUCT ){
+                    i_struct++;
+                }
+                if ( (*end)->type == n4dtypetokens::END_STRUCT ){
+                    i_struct--;
+                }
+            }
+            if (end == l.end() and i_struct != 0){
+                cerr << "Error building tree" << endl;
+                exit(1);
+            }
+            sublist.splice(sublist.begin(),l,std::next(it),end);
+#ifdef _N4D_DEBUG_
+            cout << "Detected struct with items:" << endl;
+            for (auto const& j: sublist){
+                cout << j->value;
+            }
+            cout << endl;
+#endif
+            end++;
+            for (list<n4dtoken*>::iterator i=l.begin();i!=end;i++){
+                delete (*i);
+            }
+            l.erase(l.begin(),end);
+            it=end;
+            list<n4dtoken*>::iterator i = sublist.begin();
+            while(i != sublist.end()){
+
+                n4dtree* itemtree = new n4dtree();
+                itemtree->parent = tree;
+                itemtree->type = n4dtypetree::STRUCT_ITEM;
+                tree->childs_tree.push_back(itemtree);
+
+                n4dtree* keytree = new n4dtree();
+                keytree->parent = itemtree;
+                keytree->type = n4dtypetree::STRUCT_KEY;
+                itemtree->childs_tree.push_back(keytree);
+
+                n4dtree* valuetree = new n4dtree();
+                valuetree->parent = itemtree;
+                valuetree->type = n4dtypetree::STRUCT_VALUE;
+                itemtree->childs_tree.push_back(valuetree);
+
+                n4dleaf* keyleaf = new n4dleaf();
+                keyleaf->parent = keytree;
+                keyleaf->type = (*i)->type;
+#ifdef _N4D_DEBUG_
+                cout << "Detected struct item keyleaf: " << endl << "keytype=" << (*i)->value ;
+#endif
+                keytree->childs_leaf.push_back(keyleaf);
+                delete(*i);
+                i++;
+                delete(*i);
+                i++;
+                keyleaf->value =  (*i)->value;
+#ifdef _N4D_DEBUG_
+                cout << " keyvalue=" << (*i)->value << endl;
+#endif
+                delete(*i);
+                i++;
+                delete(*i);
+                i++;
+                sublist.erase(sublist.begin(),i);
+                i = sublist.begin();
+
+                end = i;
+                int s_level = 0;
+                int a_level = 0;
+                int level = 0;
+                while (end != sublist.end() && (((*end)->type != n4dtypetokens::NEXT_ITEM) || (level != 0))){
+                    if ((*end)->type != n4dtypetokens::START_ARRAY){
+                        a_level++;
+                    }
+                    if ((*end)->type != n4dtypetokens::END_ARRAY){
+                        a_level--;
+                    }
+                    if ((*end)->type != n4dtypetokens::START_STRUCT){
+                        s_level++;
+                    }
+                    if ((*end)->type != n4dtypetokens::END_STRUCT){
+                        s_level--;
+                    }
+                    level = s_level + a_level;
+                    end++;
+                }
+                if (end == sublist.end()){
+#ifdef _N4D_DEBUG_
+                    cout << "Value for struct item: " << endl;
+                    for (auto const& j: sublist){
+                        cout << j->value;
+                    }
+                    cout << endl << "END OF STRUCT ITEMS PARSING" << endl;;
+#endif
+                    n4dtokenparser(sublist,valuetree);
+                    i = end;
+                }else{
+                    list<n4dtoken*> sublist2;
+                    sublist2.splice(sublist2.begin(),sublist,sublist.begin(),end);
+#ifdef _N4D_DEBUG_
+                    cout << "Value for struct item (more to come next):" << endl;
+                    for (auto const& j: sublist2){
+                        cout << j->value;
+                    }
+                    cout << endl;
+#endif
+                    i = std::next(end);
+                    delete (*end);
+                    n4dtokenparser(sublist2,valuetree);
+                }
+            }
+            break;
+        }
+        case n4dtypetokens::TYPE_STRING:
+        case n4dtypetokens::TYPE_BOOL:
+        case n4dtypetokens::TYPE_INT:{
+            if (parent->type == n4dtypetree::TREE_ARRAY){
+                tree = new n4dtree();
+                tree->parent = parent;
+                tree->type = n4dtypetree::ARRAY_ITEM;
+                parent->childs_tree.push_back(tree);
+                parent = tree;
+            }
+            tree = new n4dtree();
+            tree->parent = parent;
+            tree->type = n4dtypetree::TREE_ITEM;
+            n4dleaf* leaf = new n4dleaf();
+            leaf->parent = parent;
+            leaf->type = (*it)->type;
+#ifdef _N4D_DEBUG_
+            cout << "Detected leaf :" << endl << (*it)->value;
+#endif
+            delete (*it);
+            it++;
+#ifdef _N4D_DEBUG_
+            cout << (*it)->value;
+#endif
+            delete (*it);
+            it++;
+#ifdef _N4D_DEBUG_
+            cout << (*it)->value << endl;
+#endif
+            leaf->value = (*it)->value;
+            delete (*it);
+            tree->childs_leaf.push_back(leaf);
+            parent->childs_tree.push_back(tree);
+            ;
+            break;
+        }
+        default:
+            break;
+        }
+
+    }
+
+}
+
+list<n4dtoken*> n4dtokenizer(string str){
+    string buffer;
+    list<n4dtoken*> tokens;
+
+    unsigned int i = 0;
+    while (i< str.size()){
+        switch(str[i]){
+        case '{':{
+            n4dtoken* tok = new n4dtoken();
+            tok->value='{';
+            tok->type=n4dtypetokens::START_STRUCT;
+            tokens.push_back(tok);
+            break;
+        }
+        case '}':{
+            n4dtoken* tok = new n4dtoken();
+            tok->value='}';
+            tok->type=n4dtypetokens::END_STRUCT;
+            if (buffer != ""){
+                n4dtoken* tok2 = new n4dtoken();
+                tok2->value=buffer;
+                tok2->type=n4dtypetokens::ANY;
+                tokens.push_back(tok2);
+                buffer = "";
+            }
+            tokens.push_back(tok);
+            break;
+        }
+        case '[':{
+            n4dtoken* tok = new n4dtoken();
+            tok->value='[';
+            tok->type=n4dtypetokens::START_ARRAY;
+            tokens.push_back(tok);
+            break;
+        }
+        case ']':{
+            n4dtoken* tok = new n4dtoken();
+            tok->value=']';
+            tok->type=n4dtypetokens::END_ARRAY;
+            if (buffer != ""){
+                n4dtoken* tok2 = new n4dtoken();
+                tok2->value = buffer;
+                tok2->type=n4dtypetokens::ANY;
+                tokens.push_back(tok2);
+                buffer = "";
+            }
+            tokens.push_back(tok);
+            break;
+        }
+        case ',':{
+            n4dtoken* tok = new n4dtoken();
+            tok->value=',';
+            tok->type=n4dtypetokens::NEXT_ITEM;
+            if (buffer != ""){
+                n4dtoken* tok2 = new n4dtoken();
+                tok2->value=buffer;
+                tok2->type=n4dtypetokens::ANY;
+                tokens.push_back(tok2);
+                buffer = "";
+            }
+            tokens.push_back(tok);
+            break;
+        }
+        case ':':{
+            n4dtoken* tok = new n4dtoken();
+            tok->value=':';
+            tok->type=n4dtypetokens::STRUCT_SEPARATOR;
+            if (buffer != ""){
+                n4dtoken* tok2 = new n4dtoken();
+                tok2->value=buffer;
+                tok2->type=n4dtypetokens::STRUCT_KEY;
+                tokens.push_back(tok2);
+                buffer = "";
+            }
+            tokens.push_back(tok);
+            break;
+        }
+        case '/':{
+            n4dtoken* tok = new n4dtoken();
+            tok->value='/';
+            tok->type=n4dtypetokens::TYPE_SEPARATOR;
+            n4dtoken *tok2 = new n4dtoken();
+            tok2->value = buffer;
+            if (buffer == "string"){
+                tok2->type = n4dtypetokens::TYPE_STRING;
+            }
+            if (buffer == "int"){
+                tok2->type = n4dtypetokens::TYPE_STRING;
+            }
+            if (buffer == "bool"){
+                tok2->type = n4dtypetokens::TYPE_BOOL;
+            }
+            if (buffer == "struct"){
+                tok2->type = n4dtypetokens::TYPE_STRUCT;
+            }
+            if (buffer == "array"){
+                tok2->type = n4dtypetokens::TYPE_ARRAY;
+            }
+            tokens.push_back(tok2);
+            tokens.push_back(tok);
+            buffer = "";
+            break;
+        }
+        case '=':{
+            n4dtoken* tok = new n4dtoken();
+            tok->value="=";
+            tok->type=n4dtypetokens::OP_EQUAL;
+            tokens.push_back(tok);
+            buffer = "";
+            break;
+        }
+        default:{
+            buffer += str[i];
+            break;
+        }
+        }
+
+        i++;
+    }
+    if (buffer != ""){
+        n4dtoken* tok = new n4dtoken();
+        tok->value=buffer;
+        tok->type=n4dtypetokens::ANY;
+        tokens.push_back(tok);
+    }
+    //testing for debug
+    string returned="";
+    for(auto const& i: tokens){
+        returned += i->value;
+    }
+    if (str != returned){
+        //cout << str << endl;
+        //cout << returned << endl;
+        cerr << "ERROR TOKENIZING !!";
+    }
+    return tokens;
 }
 
 //    try {

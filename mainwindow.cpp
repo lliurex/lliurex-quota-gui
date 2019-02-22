@@ -16,8 +16,10 @@ MainWindow::MainWindow(QWidget *parent) :
     model = new DataModel();
     ui->stackedWidget->setCurrentIndex(0);
     ui->table_quotas->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    ui->logo->setPixmap(QPixmap(QString("/home/lliurex/banner.png")));
+    //ui->logo->setPixmap(QPixmap(QString("/home/lliurex/banner.png")));
+    ui->logo->setPixmap(QPixmap("://banner.png"));
     ui->logo->setAlignment(Qt::AlignCenter);
+    ui->configure_status_img->setPixmap(QPixmap("://unconfigured.png"));
 
 //    qDebug() << getCellData(1,1);
 //    setCellData(1,1,new QString("Hello"));
@@ -27,18 +29,38 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->table_quotas, SIGNAL(cellActivated(int,int)), this, SLOT(cell_changed(int,int)));
 }
 
+void MainWindow::OpenEditors(){
+    ui->stackedWidget->setCurrentWidget(ui->page_edit_simple);
+}
+void MainWindow::ApplyChanges(){
+    ui->stackedWidget->setCurrentWidget(ui->page_write_changes);
+}
 void MainWindow::CheckValidation(QString result){
     qDebug() << "Checking validation" << result;
     QString res = result.toLower();
     if (res.contains("adm") and res.contains("admins")){
-        ui->stackedWidget->setCurrentIndex(1);
+        ui->stackedWidget->setCurrentWidget(ui->page_select_mode);
         qDebug() << "Validation successful";
-        InitPopulateTable();
+        InitCheckStatus();
+        //InitPopulateTable();
     }else{
         qDebug() << "Validation failed";
     }
     ui->txt_usu->setText("");
     ui->txt_pwd->setText("");
+}
+void MainWindow::CompleteGetStatus(QString result){
+    qDebug() << "Completing get status " << result;
+    //n4dtree* tree = n4dtokenparser(n4dtokenizer("array/[int/5,string/jeje,string/hola que tal]"));
+    //tree = n4dtokenparser(n4dtokenizer("struct/{string/running_system:string/master,string/use_nfs:bool/false}"));
+    n4dtree* tree = n4dtokenparser(n4dtokenizer(result.toStdString()));
+    if (result.contains("status_serversync:bool/true")){
+        InitPopulateTable();
+    }
+}
+
+void MainWindow::InitCheckStatus(){
+    InitN4DCall(QtN4DWorker::Methods::GET_STATUS);
 }
 
 void MainWindow::InitPopulateTable(){
@@ -52,6 +74,9 @@ void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned){
             break;
         case QtN4DWorker::Methods::GET_DATA:
             CompletePopulate(returned);
+            break;
+        case QtN4DWorker::Methods::GET_STATUS:
+            CompleteGetStatus(returned);
             break;
     };
 }
@@ -128,6 +153,9 @@ void MainWindow::InitN4DCall(QtN4DWorker::Methods method){
         case QtN4DWorker::Methods::GET_DATA:
             connect(local_thread, SIGNAL(started()), worker, SLOT(get_table_data()));
             break;
+        case QtN4DWorker::Methods::GET_STATUS:
+            connect(local_thread, SIGNAL(started()), worker, SLOT(get_system_status()));
+            break;
     };
 
     connect(worker, SIGNAL(n4d_call_completed(QtN4DWorker::Methods,QString)),this, SLOT(ProcessCallback(QtN4DWorker::Methods,QString)));
@@ -164,7 +192,7 @@ QString MainWindow::getCellData(int x, int y){
 }
 
 void MainWindow::setCellData(int x, int y, QString *str){
-    qDebug() << "Cell " << x << "," << y << " changed from " << getCellData(x,y) << " to " << *str ;
+    //qDebug() << "Cell " << x << "," << y << " changed from " << getCellData(x,y) << " to " << *str ;
     ui->table_quotas->setItem(x,y,new QTableWidgetItem(*str));
     return ;
 }

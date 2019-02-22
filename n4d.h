@@ -51,7 +51,7 @@ class QtN4DWorker: public QObject{
     Q_OBJECT
 
 public:
-    enum class Methods { LOGIN, GET_DATA };
+    enum class Methods { LOGIN, GET_DATA, GET_STATUS };
     Q_ENUM(Methods)
 
     QtN4DWorker();
@@ -64,10 +64,47 @@ signals:
 public slots:
     void validate_user();
     void get_table_data();
+    void get_system_status();
 
 private:
     N4D* n4d;
     QString user,pwd;
 };
+
+enum class n4dtypetokens { START_ARRAY, END_ARRAY, START_STRUCT, END_STRUCT, STRUCT_KEY, STRUCT_SEPARATOR, NEXT_ITEM, TYPE_SEPARATOR, TYPE_STRING, TYPE_INT, TYPE_ARRAY, TYPE_STRUCT, TYPE_BOOL, OP_EQUAL, ANY};
+enum class n4dtypetree {ROOT, TREE_ARRAY, TREE_STRUCT, TREE_ITEM, STRUCT_ITEM, STRUCT_KEY, STRUCT_VALUE, ARRAY_ITEM};
+
+class n4dtoken {
+public:
+    n4dtypetokens type;
+    string value;
+};
+
+class n4dtree;
+
+class n4dleaf {
+public:
+    //n4dleaf();
+    //~n4dleaf();
+    n4dtree* parent;
+    n4dtypetokens type;
+    string value;
+};
+
+class n4dtree {
+public:
+    //n4dtree();
+    //~n4dtree();
+    n4dtypetree type;
+    n4dtree* parent;
+    list<n4dtree*> childs_tree;
+    list<n4dleaf*> childs_leaf;
+};
+
+n4dtree* n4dtokenparser(string str);
+n4dtree* n4dtokenparser(list<n4dtoken*> list);
+void n4dtokenparser(list<n4dtoken*> list, n4dtree* parent);
+list<n4dtoken*> n4dtokenizer(string str);
+
 
 #endif // N4D_H
