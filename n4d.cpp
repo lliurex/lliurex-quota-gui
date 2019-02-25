@@ -462,6 +462,130 @@ void QtN4DWorker::get_system_status(){
     emit n4d_call_completed(Methods::GET_STATUS,QString(res.data()));
 }
 
+bool n4dvalidator(n4dleaf* result, n4dleaf* query){
+    if (result->type != query->type){
+        return false;
+    }
+    if (result->value == query->value){
+        switch(query->parent->type){
+        case n4dtypetree::STRUCT_VALUE:{
+            list<n4dtree*>::iterator first_child = result->parent->parent->childs_tree.begin();
+            list<n4dtree*>::iterator query_first_child = query->parent->parent->childs_tree.begin();
+            n4dtree* struct_key_item = (*first_child);
+            list<n4dleaf*>::iterator leaf = struct_key_item->childs_leaf.begin();
+            n4dtree* query_struct_key_item = (*query_first_child);
+            list<n4dleaf*>::iterator query_leaf = query_struct_key_item->childs_leaf.begin();
+            // DO NOT USE RECURSIVE SOLUTION !! CYCLE !!
+            if ((*query_leaf)->type != (*leaf)->type){
+                return false;
+            }
+            if ((*query_leaf)->value != (*leaf)->value){
+                return false;
+            }
+            return true;
+            break;
+        }
+        case n4dtypetree::STRUCT_KEY:{
+            list<n4dtree*>::iterator last_child = result->parent->parent->childs_tree.begin();
+            list<n4dtree*>::iterator query_last_child = query->parent->parent->childs_tree.begin();
+            last_child++;
+            query_last_child++;
+            n4dtree* struct_value_item = (*last_child);
+            n4dtree* query_struct_value_item = (*query_last_child);
+
+            return n4dvalidator(struct_value_item,query_struct_value_item);
+            break;
+        }
+        default:
+            return true;
+            break;
+        }
+    }
+    return false;
+}
+
+/* Avoid -Wunused warnings */
+#define UNUSED(x) (void)(x)
+
+bool n4dvalidator(n4dtree* result, n4dleaf* query){
+    UNUSED(result);
+    UNUSED(query);
+    return false;
+}
+
+bool n4dvalidator(n4dleaf* result, n4dtree* query){
+    UNUSED(result);
+    UNUSED(query);
+    return false;
+}
+
+bool n4dvalidator(n4dtree* result, n4dtree* query){
+    n4dtree* presult;
+    n4dtree* pquery;
+    presult = result;
+    pquery = query;
+    bool found = false;
+    bool notfound = false;
+    while (!found && !notfound){
+        if (pquery->type != presult->type){
+            return false;
+        }
+        for (auto const& i: pquery->childs_leaf){
+            if (presult->childs_leaf.size() < pquery->childs_leaf.size() ){
+                return false;
+            }
+            for (auto const& j: presult->childs_leaf){
+                if (n4dvalidator(j,i)){
+                    found = true;
+                    break;
+                }
+            }
+            if (found){
+                break;
+            }
+        }
+        if (found){
+            break;
+        }
+        for (auto const& i: pquery->childs_tree){
+            if (presult->childs_tree.size() < pquery->childs_tree.size() ){
+                return false;
+            }
+            for (auto const& j: presult->childs_tree){
+                if (n4dvalidator(j,i)){
+                    found = true;
+                    break;
+                }
+            }
+            if (found){
+                break;
+            }
+        }
+        if (found){
+            break;
+        }
+        notfound = true;
+    }
+
+    if (found){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+bool n4dvalidator(n4dtree* result,string query){
+    return n4dvalidator(result, n4dtokenparser(query));
+}
+
+bool n4dvalidator(string result, n4dtree* query){
+    return n4dvalidator(n4dtokenparser(result),query);
+}
+
+bool n4dvalidator(string result, string query){
+    return n4dvalidator(n4dtokenparser(result),n4dtokenparser(query));
+}
+
 n4dtree* n4dtokenparser(string str){
     return n4dtokenparser(n4dtokenizer(str));
 }

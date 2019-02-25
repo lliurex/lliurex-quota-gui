@@ -38,7 +38,7 @@ void MainWindow::ApplyChanges(){
 void MainWindow::CheckValidation(QString result){
     qDebug() << "Checking validation" << result;
     QString res = result.toLower();
-    if (res.contains("adm") and res.contains("admins")){
+    if (n4dvalidator(result.toStdString(),"array/[bool/true]") && n4dvalidator(result.toStdString(),"array/[array/[string/admins]]")){
         ui->stackedWidget->setCurrentWidget(ui->page_select_mode);
         qDebug() << "Validation successful";
         InitCheckStatus();
@@ -51,11 +51,11 @@ void MainWindow::CheckValidation(QString result){
 }
 void MainWindow::CompleteGetStatus(QString result){
     qDebug() << "Completing get status " << result;
-    //n4dtree* tree = n4dtokenparser(n4dtokenizer("array/[int/5,string/jeje,string/hola que tal]"));
-    //tree = n4dtokenparser(n4dtokenizer("struct/{string/running_system:string/master,string/use_nfs:bool/false}"));
-    n4dtree* tree = n4dtokenparser(n4dtokenizer(result.toStdString()));
-    if (result.contains("status_serversync:bool/true")){
+    if (n4dvalidator(result.toStdString(),"struct/{string/remote:{string/status_serversync:bool/true}}")){
+        qDebug() << "Validation successful" ;
         InitPopulateTable();
+    }else{
+        qDebug() << "Validation result failed" ;
     }
 }
 

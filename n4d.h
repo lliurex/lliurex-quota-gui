@@ -101,6 +101,13 @@ public:
     list<n4dleaf*> childs_leaf;
 };
 
+bool n4dvalidator(n4dleaf* result, n4dleaf* query);
+bool n4dvalidator(n4dtree* result, n4dleaf* query);
+bool n4dvalidator(n4dleaf* result, n4dtree* query);
+bool n4dvalidator(n4dtree* result, n4dtree* query);
+bool n4dvalidator(n4dtree* result, string query);
+bool n4dvalidator(string result, n4dtree* query);
+bool n4dvalidator(string result, string query);
 n4dtree* n4dtokenparser(string str);
 n4dtree* n4dtokenparser(list<n4dtoken*> list);
 void n4dtokenparser(list<n4dtoken*> list, n4dtree* parent);
