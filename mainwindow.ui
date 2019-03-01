@@ -91,7 +91,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="page_login">
        <property name="sizePolicy">
@@ -259,7 +259,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="page_select_mode">
+      <widget class="QWidget" name="page_group_edit">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -279,73 +279,73 @@
         <string notr="true">centered
 </string>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_3c">
-        <item>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="1" column="0">
+         <widget class="QTableWidget" name="tableGroupEdition"/>
+        </item>
+        <item row="0" column="0">
          <layout class="QHBoxLayout" name="horizontalLayout_3">
           <item>
-           <widget class="QLabel" name="configure_status_img">
-            <property name="enabled">
+           <widget class="QLabel" name="lbl_filter_group_table">
+            <property name="text">
+             <string>Filter:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="txt_filter_group_table">
+            <property name="clearButtonEnabled">
              <bool>true</bool>
             </property>
-            <property name="text">
-             <string/>
-            </property>
-            <property name="pixmap">
-             <pixmap>face-surprise.png</pixmap>
-            </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="configure_status_lbl">
-            <property name="font">
-             <font>
-              <pointsize>14</pointsize>
-             </font>
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
-            <property name="text">
-             <string>TextLabel</string>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
             </property>
-           </widget>
+           </spacer>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_5">
-            <item>
-             <widget class="QPushButton" name="btn_configure">
-              <property name="font">
-               <font>
-                <pointsize>14</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Configure</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="btn_deconfigure">
-              <property name="font">
-               <font>
-                <pointsize>14</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Deconfigure</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
+           <widget class="QCheckBox" name="check_show_all_groups">
+            <property name="text">
+             <string>Show all groups</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
-        <item>
-         <widget class="QPushButton" name="btn_edquotas">
+        <item row="2" column="0">
+         <widget class="QPushButton" name="applyButtonGroupTable">
+          <property name="text">
+           <string>Apply</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="page_need_configuration">
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+         <widget class="QLabel" name="lbl_msg_need_configuration">
           <property name="font">
            <font>
-            <pointsize>14</pointsize>
+            <pointsize>16</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="text">
-           <string>Quota Editor</string>
+           <string>This system need to be configured before you can edit something</string>
+          </property>
+          <property name="scaledContents">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -964,26 +964,84 @@
     </item>
    </layout>
   </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>16777215</width>
+     <height>16777215</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionEnable"/>
+   <addaction name="actionDisable"/>
+   <addaction name="actionQuotaEditor"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionEnable">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/configured.png</normaloff>:/configured.png</iconset>
+   </property>
+   <property name="text">
+    <string>Enable</string>
+   </property>
+   <property name="toolTip">
+    <string>Enable</string>
+   </property>
+  </action>
+  <action name="actionDisable">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/unconfigured.png</normaloff>:/unconfigured.png</iconset>
+   </property>
+   <property name="text">
+    <string>Disable</string>
+   </property>
+   <property name="toolTip">
+    <string>Disable</string>
+   </property>
+  </action>
+  <action name="actionQuotaEditor">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/editor.png</normaloff>:/editor.png</iconset>
+   </property>
+   <property name="text">
+    <string>QuotaEditor</string>
+   </property>
+   <property name="toolTip">
+    <string>QuotaEditor</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections>
-  <connection>
-   <sender>btn_apply_simple</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>apply_table_to_model()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>399</x>
-     <y>534</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>btn_signin</sender>
    <signal>clicked()</signal>
@@ -993,54 +1051,6 @@
     <hint type="sourcelabel">
      <x>631</x>
      <y>380</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_edquotas</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OpenEditors()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>399</x>
-     <y>565</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_apply_simple</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>ApplyChanges()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>737</x>
-     <y>376</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_apply_final</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OpenEditors()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>399</x>
-     <y>568</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>
@@ -1080,12 +1090,60 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>check_show_all_groups</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>PopulateGroupTableWithFilter()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>711</x>
+     <y>157</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>txt_filter_group_table</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>PopulateGroupTableWithFilter()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>206</x>
+     <y>158</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>applyButtonGroupTable</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>CheckGroupTableDifferences()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>399</x>
+     <y>546</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>CellChanged()</slot>
   <slot>InitValidation()</slot>
   <slot>apply_table_to_model()</slot>
-  <slot>OpenEditors()</slot>
-  <slot>ApplyChanges()</slot>
+  <slot>PopulateGroupTableWithFilter()</slot>
+  <slot>CheckGroupTableDifferences()</slot>
  </slots>
 </ui>

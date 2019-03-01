@@ -3,5 +3,6 @@
         <file>banner.png</file>
         <file>configured.png</file>
         <file>unconfigured.png</file>
+        <file>editor.png</file>
     </qresource>
 </RCC>

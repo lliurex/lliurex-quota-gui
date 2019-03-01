@@ -51,7 +51,7 @@ class QtN4DWorker: public QObject{
     Q_OBJECT
 
 public:
-    enum class Methods { LOGIN, GET_DATA, GET_STATUS };
+    enum class Methods { LOGIN, GET_DATA, GET_STATUS, GET_CONFIGURED, GET_GOLEM_GROUPS };
     Q_ENUM(Methods)
 
     QtN4DWorker();
@@ -65,6 +65,8 @@ public slots:
     void validate_user();
     void get_table_data();
     void get_system_status();
+    void get_configured_status();
+    void get_golem_groups();
 
 private:
     N4D* n4d;
@@ -101,6 +103,10 @@ public:
     list<n4dleaf*> childs_leaf;
 };
 
+// TODO: make n4dresult2xml(string result);
+// This make available to use XPath queries to get elements easily
+
+string n4dresult2json(string result);
 bool n4dvalidator(n4dleaf* result, n4dleaf* query);
 bool n4dvalidator(n4dtree* result, n4dleaf* query);
 bool n4dvalidator(n4dleaf* result, n4dtree* query);

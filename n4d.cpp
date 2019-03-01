@@ -462,6 +462,53 @@ void QtN4DWorker::get_system_status(){
     emit n4d_call_completed(Methods::GET_STATUS,QString(res.data()));
 }
 
+void QtN4DWorker::get_configured_status(){
+    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","get_quotafile",false);
+    emit n4d_call_completed(Methods::GET_CONFIGURED,QString(res.data()));
+}
+
+void QtN4DWorker::get_golem_groups(){
+    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"Golem","get_available_groups",false);
+    emit n4d_call_completed(Methods::GET_GOLEM_GROUPS,QString(res.data()));
+}
+
+string n4dresult2json(string result){
+    string buffer;
+    string output;
+
+    unsigned int i = 0;
+
+    while(i < result.length()){
+        switch(result[i]){
+        case '/':{
+            buffer.clear();
+            break;
+        }
+        case ',':
+        case ']':
+        case '[':
+        case '{':
+        case '}':
+        case ':':
+        {
+            if (buffer != ""){
+                output += '"' + buffer + '"' + result[i];
+            }else{
+                output += result[i];
+            }
+            buffer.clear();
+            break;
+        }
+        default:{
+            buffer += result[i];
+            break;
+        }
+        }
+        i++;
+    }
+    return output;
+}
+
 bool n4dvalidator(n4dleaf* result, n4dleaf* query){
     if (result->type != query->type){
         return false;
