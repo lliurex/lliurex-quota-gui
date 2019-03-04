@@ -31,7 +31,8 @@ public slots:
     void InitGetGolemGroups();
     void PopulateGroupTableWithFilter();
     void CheckGroupTableDifferences();
-
+    void CellChangedGroupTable(int row, int col);
+    void PendingBack();
     // IMPLEMENTING
     // void InitPopulateTable();
 
@@ -47,6 +48,9 @@ private:
     Ui::MainWindow *ui;
     QThread* local_thread;
     QString n4duser, n4dpwd;
+    QList<QWidget*> last_page_used;
+    QList<QWidget*> tablewidgets;
+    QMap<QWidget*,bool> enable_watch_group_table;
     QMap<QString,QStringList>* map_group_info;
 
     // CHECK IF NEEDED
@@ -64,8 +68,12 @@ private:
     void ChangePannel(QWidget* pannel);
     QMap<QString,QStringList> readViewTable(QTableWidget* table);
     QMap<QString,QStringList> getTableDifferences(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2);
+    QMap<QString,QStringList> getTableDifferencesWithHeader(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2);
     QMap<QString,QStringList> ApplyChangesToModel(QMap<QString,QStringList>* model,QMap<QString,QStringList>* changes);
     bool isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2);
+    void showConfirmationTable(QTableWidget* table,QMap<QString,QStringList>* model);
+    QString normalizeUnits(QString value);
+    bool isValidQuotaValue(QString value);
 };
 
 #endif // MAINWINDOW_H

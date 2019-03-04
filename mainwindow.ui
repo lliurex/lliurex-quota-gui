@@ -91,7 +91,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="page_login">
        <property name="sizePolicy">
@@ -949,14 +949,25 @@
          </widget>
         </item>
         <item>
-         <widget class="QTableView" name="table_pending"/>
+         <widget class="QTableWidget" name="table_pending"/>
         </item>
         <item>
-         <widget class="QPushButton" name="btn_apply_final">
-          <property name="text">
-           <string>Apply</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QPushButton" name="btn_pending_back">
+            <property name="text">
+             <string>Back</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_pending_apply">
+            <property name="text">
+             <string>Apply</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -1138,12 +1149,44 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>tableGroupEdition</sender>
+   <signal>cellChanged(int,int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>CellChangedGroupTable(int,int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>399</x>
+     <y>352</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_pending_back</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>PendingBack()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>207</x>
+     <y>545</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
-  <slot>CellChanged()</slot>
+  <slot>CellChangedGroupTable(int,int)</slot>
   <slot>InitValidation()</slot>
-  <slot>apply_table_to_model()</slot>
   <slot>PopulateGroupTableWithFilter()</slot>
   <slot>CheckGroupTableDifferences()</slot>
+  <slot>PendingBack()</slot>
  </slots>
 </ui>

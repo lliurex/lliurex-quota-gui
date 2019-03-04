@@ -9,6 +9,7 @@
 #include <QStandardItemModel>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 
 #include <algorithm>
 
@@ -17,6 +18,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    tablewidgets = {ui->tableGroupEdition,ui->table_pending};
+    for (auto const& k: tablewidgets){
+        enable_watch_group_table.insert(k,false);
+    }
     ChangePannel(ui->page_login);
 }
 
@@ -128,7 +133,7 @@ void MainWindow::InitGetGolemGroups(){
  * Method to customize pannel styles and related widgets globally
  * */
 void MainWindow::ChangePannel(QWidget* pannel){
-    ui->stackedWidget->setCurrentWidget(pannel);
+    static int MAX_HISTORY_ELEMENTS = 10;
 
     if (pannel == ui->page_login){
         ui->statusBar->showMessage(tr("Ready"),2000);
@@ -150,7 +155,26 @@ void MainWindow::ChangePannel(QWidget* pannel){
         ui->actionDisable->setEnabled(true);
         ui->actionQuotaEditor->setEnabled(true);
         ui->toolBar->show();
+        if (last_page_used.size() > 1){
+            if (last_page_used.at(0) == ui->page_write_changes && last_page_used.at(1) == ui->page_group_edit){
+                ui->applyButtonGroupTable->setEnabled(true);
+            }else{
+                ui->applyButtonGroupTable->setDisabled(true);
+            }
+        }
+        enable_watch_group_table[ui->tableGroupEdition] = true;
     }
+    if (pannel == ui->page_write_changes){
+        QWidget* current = ui->stackedWidget->currentWidget();
+        if (current == ui->page_group_edit){
+            showConfirmationTable(ui->tableGroupEdition,map_group_info);
+        }
+    }
+    last_page_used.push_front(pannel);
+    if (last_page_used.size() > MAX_HISTORY_ELEMENTS){
+        last_page_used.pop_back();
+    }
+    ui->stackedWidget->setCurrentWidget(pannel);
 }
 
 /*
@@ -199,7 +223,7 @@ void MainWindow::CompleteGetConfigure(QString result){
         map->insert("__HEADER__",headers);
         for (int i=0; i < groups.size(); i++){
             QStringList tableitem;
-            tableitem << result[groups[i]].toMap()["quota"].toString();
+            tableitem << normalizeUnits(result[groups[i]].toMap()["quota"].toString());
             map->insert(groups[i],tableitem);
         }
         map_group_info = map;
@@ -250,6 +274,9 @@ void MainWindow::PopulateGroupTableWithFilter(){
         PopulateTable(map_group_info,ui->tableGroupEdition,filter_show,filter_remove);
     }else{
         QMap<QString,QStringList> diff = getTableDifferences(map_group_info,&content);
+        if (!diff.isEmpty()){
+            ui->applyButtonGroupTable->setEnabled(true);
+        }
         QMap<QString,QStringList> merged = ApplyChangesToModel(map_group_info,&diff);
         for (auto const& k: merged.keys()){
             if (! k.contains(ui->txt_filter_group_table->text(),Qt::CaseInsensitive)){
@@ -272,6 +299,7 @@ void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* ta
  * */
 void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* table, QStringList showfilter, QStringList filter){
     InitializeTable(table);
+    enable_watch_group_table[table] = false;
     table->setColumnCount(data->value("__HEADER__").size());
     table->setHorizontalHeaderLabels(data->value("__HEADER__"));
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -314,6 +342,7 @@ void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* ta
             table->hideRow(0);
         }      
     }
+    enable_watch_group_table[table]=true;
 }
 
 /*
@@ -371,6 +400,16 @@ QMap<QString,QStringList> MainWindow::getTableDifferences(QMap<QString,QStringLi
 }
 
 /*
+ * BUILD COMPLETE TABLE MODEL FROM DIFERECES BETWEEN TWO MODELS
+ * */
+QMap<QString,QStringList> MainWindow::getTableDifferencesWithHeader(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2){
+      QMap<QString,QStringList> tablemodel;
+      tablemodel = getTableDifferences(td1,td2);
+      tablemodel.insert("__HEADER__",td2->value("__HEADER__"));
+      return tablemodel;
+}
+
+/*
  * METHOD TO CHECK IF ONE TABLE IS MODIFIED td1 (base table), td2 (table to check)
  * */
 bool MainWindow::isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2){
@@ -389,10 +428,12 @@ bool MainWindow::isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringL
 void MainWindow::CheckGroupTableDifferences(){
     QMap<QString,QStringList> result = readViewTable(ui->tableGroupEdition);
     if (isModified(map_group_info,&result)){
-        qDebug() << "Distinct Table";
-    }else{
-        qDebug() << "Same Table";
+    //    qDebug() << "Distinct Table";
+        ChangePannel(ui->page_write_changes);
     }
+    //else{
+    //    qDebug() << "Same Table";
+    //}
 }
 
 /*
@@ -412,6 +453,102 @@ QMap<QString,QStringList> MainWindow::ApplyChangesToModel(QMap<QString,QStringLi
     return map;
 }
 
+/*
+ * SLOT THAT ENABLES/DISABLE APPLY BUTTON ON GROUP TABLE
+ * */
+void MainWindow::CellChangedGroupTable(int row,int col){
+    if (enable_watch_group_table.value(ui->tableGroupEdition)){
+        QString value = ui->tableGroupEdition->item(row,col)->text();
+        QString key = ui->tableGroupEdition->verticalHeaderItem(row)->text();
+        if (isValidQuotaValue(value)){
+            value = normalizeUnits(value);
+        }else{
+            value = map_group_info->value(key).at(col);
+            ui->statusBar->showMessage(tr("Invalid value"),5000);
+        }
+        enable_watch_group_table[ui->tableGroupEdition]=false;
+        ui->tableGroupEdition->item(row,col)->setText(value);
+        enable_watch_group_table[ui->tableGroupEdition]=true;
+
+        QMap<QString,QStringList> contents = readViewTable(ui->tableGroupEdition);
+        if (isModified(map_group_info,&contents)){
+            ui->applyButtonGroupTable->setEnabled(true);
+        }else{
+            ui->applyButtonGroupTable->setDisabled(true);
+        }
+    }
+}
+
+/*
+ * SHOW PENDING CHANGES FOR GROUP ACTIONS
+ * */
+void MainWindow::showConfirmationTable(QTableWidget* table,QMap<QString,QStringList>* model){
+    QMap<QString,QStringList> contents = readViewTable(table);
+    QMap<QString,QStringList> diff = getTableDifferencesWithHeader(model,&contents);
+    PopulateTable(&diff,ui->table_pending);
+}
+
+/*
+ * SLOT TO RETURN TO EDITION TABLE
+ * */
+void MainWindow::PendingBack(){
+    ChangePannel(last_page_used.at(1));
+}
+
+/*
+ * NORMALIZE QUOTA VALUE
+ * */
+QString MainWindow::normalizeUnits(QString value){
+    QString out;
+    QRegularExpression number_with_unit("^(\\d+)([gGmM])$");
+    QRegularExpression number("^(\\d+)$");
+    QRegularExpressionMatch match;
+    match = number_with_unit.match(value);
+
+    if (match.hasMatch()){
+        QString numeric_value = match.captured(1);
+        QString unit_value = match.captured(2);
+        if (unit_value.toUpper() == "G"){
+            out = numeric_value + "G";
+        }else{
+            int numeric_int = numeric_value.toInt();
+            numeric_value = QString::number(numeric_int / 1024,10,1);
+            out = numeric_value + "G";
+        }
+    }else{
+        match = number.match(value);
+        if (match.hasMatch()){
+            QString numeric_value = match.captured(1);
+            numeric_value = QString::number(numeric_value.toInt()/(1024*1024),10,1);
+            out = numeric_value + "G";
+        }else{
+            out = "0";
+        }
+    }
+    return out;
+}
+
+/*
+ * CHECK VALID QUOTA VALUE
+ * */
+bool MainWindow::isValidQuotaValue(QString value){
+    QRegularExpression number_with_unit("^\\d+[gGmM]$");
+    QRegularExpression zero("^0$");
+    QRegularExpressionMatch match;
+
+    match = number_with_unit.match(value);
+    if (match.hasMatch()){
+        return true;
+    }else{
+        match = zero.match(value);
+        if (match.hasMatch()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+}
 
 /*
  * OLD CODE
