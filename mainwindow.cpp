@@ -279,39 +279,29 @@ void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* ta
     QAbstractItemModel* m;
     m = table->model();
     QStringList keys = QStringList(data->keys());
-    keys.sort(Qt::CaseInsensitive);
+    QSet<QString> keys_to_hide;
 
-    QStringList filternocase, shownocase, keysnocase;
+    keys.sort(Qt::CaseInsensitive);
 
     if (! filter.contains("__HEADER__")){
         filter << "__HEADER__";
     }
-    while(!filter.isEmpty()){
-        QString target = filter.takeFirst();
+    if (!filter.isEmpty()){
         for (auto const& i: keys){
-            if ( i.toLower() == target.toLower()){
-                keys.removeOne(target);
+            if (filter.contains(i,Qt::CaseInsensitive)){
+                keys_to_hide.insert(i);
             }
         }
     }
     if (!showfilter.isEmpty()){
-        QStringList keys_filtered;
-        while(!showfilter.isEmpty()){
-            QString target = showfilter.takeFirst();
-            for (auto const& i: keys){
-                if ( i.toLower() == target.toLower()){
-                    keys_filtered << i;
-                }
+        for (auto const& i: keys){
+            if (! showfilter.contains(i,Qt::CaseInsensitive)){
+                keys_to_hide.insert(i);
             }
         }
-        keys = keys_filtered;
     }
     while (! keys.isEmpty()){
         QString k = keys.takeLast();
-        if (filter.contains(k)){
-            continue;
-        }
-
         m->insertRow(0);
         table->setVerticalHeaderItem(0,new QTableWidgetItem(k));
         unsigned int i = 0;
@@ -320,6 +310,9 @@ void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* ta
             table->item(0,i)->setTextAlignment(Qt::AlignCenter);
             i++;
         }
+        if (keys_to_hide.contains(k)){
+            table->hideRow(0);
+        }      
     }
 }
 
@@ -385,6 +378,7 @@ bool MainWindow::isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringL
     if (result.isEmpty()){
         return false;
     }else{
+        //qDebug() << result;
         return true;
     }
 }
