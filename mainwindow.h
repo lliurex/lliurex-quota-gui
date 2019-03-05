@@ -51,6 +51,7 @@ private:
     QString n4duser, n4dpwd;
     QList<QWidget*> last_page_used;
     QList<QWidget*> tablewidgets;
+    QStringList golem_groups;
     QMap<QWidget*,bool> enable_watch_group_table;
     QMap<QString,QStringList>* map_group_info;
 

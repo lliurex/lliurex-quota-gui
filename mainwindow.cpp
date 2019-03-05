@@ -9,6 +9,7 @@
 #include <QStandardItemModel>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QRegularExpression>
 
 #include <algorithm>
@@ -85,6 +86,8 @@ void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned){
             StoreGolemGroups(returned);
             break;
     };
+    qDebug() << "Result from N4D:" << from;
+    qDebug() << returned;
 }
 
 /*
@@ -252,7 +255,18 @@ void MainWindow::CompleteGetConfigure(QString result){
  * Callback to store classroom groups
  * */
 void MainWindow::StoreGolemGroups(QString returned){
-    qDebug() << returned;
+    golem_groups.clear();
+    string json = n4dresult2json(returned.toStdString());
+    QJsonDocument res = QJsonDocument::fromJson(QString(json.data()).toUtf8());
+    if (res.isArray()){
+        QJsonArray arr = res.array();
+        for (auto e: arr){
+            QJsonObject o = e.toObject();
+            if (o["cn"].isArray()){
+                golem_groups << o["cn"].toArray().at(0).toString();
+            }
+        }
+    }
     InitCheckStatus();
 }
 
@@ -277,7 +291,8 @@ void MainWindow::PopulateGroupTableWithFilter(){
     if (ui->check_show_all_groups->isChecked()){
         filter_show.clear();
     }else{
-        filter_show = QStringList::fromStdList({"aluS","pRos","students","teachers","admins"});
+        filter_show = QStringList::fromStdList({"students","teachers","admins"});
+        filter_show += golem_groups;
     }
     filter_remove.clear();
     QMap<QString,QStringList> content = readViewTable(ui->tableGroupEdition);
@@ -313,7 +328,8 @@ void MainWindow::PopulateGroupTableWithFilter(QMap<QString,QStringList>* content
     QStringList filter_remove;
     QStringList filter_show;
 
-    filter_show = QStringList::fromStdList({"aluS","pRos","students","teachers","admins"});
+    filter_show = QStringList::fromStdList({"students","teachers","admins"});
+    filter_show += golem_groups;
     filter_remove.clear();
     if (content->isEmpty()){
         return;

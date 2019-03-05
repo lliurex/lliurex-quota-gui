@@ -484,7 +484,23 @@ string n4dresult2json(string result){
             buffer.clear();
             break;
         }
-        case ',':
+        case ',':{
+            // Ugly method needed to avoid break string that contains case delimiter characters
+            string next="";
+            unsigned int j=1;
+            while(i+j < result.length() && result[i+j] != '/'){
+                next += result[i+j];
+                j++;
+                if (j>10)
+                    break;
+            }
+            if (next != "array" && next != "struct" && next != "string" && next != "bool" && next != "int" && next != "float" && next != "double" ){
+                buffer += result[i];
+                break;
+            }
+            // End ugly method
+        }
+        [[fallthrough]];
         case ']':
         case '[':
         case '{':
