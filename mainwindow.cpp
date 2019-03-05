@@ -170,11 +170,27 @@ void MainWindow::ChangePannel(QWidget* pannel){
             showConfirmationTable(ui->tableGroupEdition,map_group_info);
         }
     }
+
+    // Page history
     last_page_used.push_front(pannel);
     if (last_page_used.size() > MAX_HISTORY_ELEMENTS){
         last_page_used.pop_back();
     }
+
     ui->stackedWidget->setCurrentWidget(pannel);
+}
+
+/*
+ * MAKE READ ONLY TABLE
+ * */
+void MainWindow::makeReadOnlyTable(QTableWidget* table){
+    // Make read only
+    for (int col=0; col < table->columnCount(); col++){
+        for (int row=0; row < table->rowCount(); row++){
+            QTableWidgetItem* item = table->item(row,col);
+            item->setFlags(item->flags() ^ Qt::ItemIsEditable);
+        }
+    }
 }
 
 /*
@@ -271,10 +287,13 @@ void MainWindow::PopulateGroupTableWithFilter(){
                 filter_remove << k;
             }
         }
+        ui->applyButtonGroupTable->setDisabled(true);
         PopulateTable(map_group_info,ui->tableGroupEdition,filter_show,filter_remove);
     }else{
         QMap<QString,QStringList> diff = getTableDifferences(map_group_info,&content);
-        if (!diff.isEmpty()){
+        if (diff.isEmpty()){
+            ui->applyButtonGroupTable->setDisabled(true);
+        }else{
             ui->applyButtonGroupTable->setEnabled(true);
         }
         QMap<QString,QStringList> merged = ApplyChangesToModel(map_group_info,&diff);
@@ -284,6 +303,25 @@ void MainWindow::PopulateGroupTableWithFilter(){
             }
         }
         PopulateTable(&merged,ui->tableGroupEdition,filter_show,filter_remove);
+    }
+}
+
+/*
+ * Initialize group table  & filters with supplied content
+ * */
+void MainWindow::PopulateGroupTableWithFilter(QMap<QString,QStringList>* content){
+    QStringList filter_remove;
+    QStringList filter_show;
+
+    filter_show = QStringList::fromStdList({"aluS","pRos","students","teachers","admins"});
+    filter_remove.clear();
+    if (content->isEmpty()){
+        return;
+    }else{
+        PopulateTable(content,ui->tableGroupEdition,filter_show,filter_remove);
+        ui->applyButtonGroupTable->setDisabled(true);
+        ui->txt_filter_group_table->setText("");
+        ui->check_show_all_groups->setChecked(false);
     }
 }
 
@@ -486,6 +524,7 @@ void MainWindow::showConfirmationTable(QTableWidget* table,QMap<QString,QStringL
     QMap<QString,QStringList> contents = readViewTable(table);
     QMap<QString,QStringList> diff = getTableDifferencesWithHeader(model,&contents);
     PopulateTable(&diff,ui->table_pending);
+    makeReadOnlyTable(ui->table_pending);
 }
 
 /*
@@ -500,26 +539,37 @@ void MainWindow::PendingBack(){
  * */
 QString MainWindow::normalizeUnits(QString value){
     QString out;
-    QRegularExpression number_with_unit("^(\\d+)([gGmM])$");
-    QRegularExpression number("^(\\d+)$");
+    QRegularExpression number_with_unit("^(\\d+[.]?\\d*)[ ]*([gGmM])$");
+    QRegularExpression number("^(\\d+[.]?\\d*)$");
     QRegularExpressionMatch match;
-    match = number_with_unit.match(value);
 
+    match = number_with_unit.match(value);
     if (match.hasMatch()){
         QString numeric_value = match.captured(1);
         QString unit_value = match.captured(2);
-        if (unit_value.toUpper() == "G"){
+        if (unit_value.toUpper() == "G"){ // "G" as unit
             out = numeric_value + "G";
-        }else{
-            int numeric_int = numeric_value.toInt();
-            numeric_value = QString::number(numeric_int / 1024,10,1);
+        }else{ // "M" as unit
+            numeric_value = QString::number(numeric_value.toFloat() / 1024,10,2);
             out = numeric_value + "G";
         }
     }else{
         match = number.match(value);
         if (match.hasMatch()){
             QString numeric_value = match.captured(1);
-            numeric_value = QString::number(numeric_value.toInt()/(1024*1024),10,1);
+            float numeric_float = numeric_value.toFloat();
+
+            if (numeric_float >= 1024){ // Assume "K" as unit (native mode)
+                numeric_value = QString::number(numeric_float/(1024*1024),10,2);
+            }else{
+                if (numeric_float <= 20){ // Assume "G" as unit
+                    numeric_value = QString::number(numeric_float,10,2);
+                }else{
+                    if (numeric_float > 20 && numeric_float < 1024){ // Assume "M" as unit
+                        numeric_value = QString::number(numeric_float/1024,10,2);
+                    }
+                }
+            }
             out = numeric_value + "G";
         }else{
             out = "0";
@@ -529,18 +579,18 @@ QString MainWindow::normalizeUnits(QString value){
 }
 
 /*
- * CHECK VALID QUOTA VALUE
+ * CHECK VALID QUOTA VALUE, VALIDATES USER INPUT WHEN CHANGES ANY COLUMN
  * */
 bool MainWindow::isValidQuotaValue(QString value){
-    QRegularExpression number_with_unit("^\\d+[gGmM]$");
-    QRegularExpression zero("^0$");
+    QRegularExpression number_with_unit("^\\d+[.]?\\d*[ ]*[gGmM]$");
+    QRegularExpression number("^\\d+[.]?\\d*$");
     QRegularExpressionMatch match;
 
     match = number_with_unit.match(value);
     if (match.hasMatch()){
         return true;
     }else{
-        match = zero.match(value);
+        match = number.match(value);
         if (match.hasMatch()){
             return true;
         }else{
@@ -548,6 +598,13 @@ bool MainWindow::isValidQuotaValue(QString value){
         }
     }
 
+}
+
+/*
+ * SLOT UNDOING CHANGES INTO GROUP TABLE
+ * */
+void MainWindow::RestoreGroupTable(){
+    PopulateGroupTableWithFilter(map_group_info);
 }
 
 /*

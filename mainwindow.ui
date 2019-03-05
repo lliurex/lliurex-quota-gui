@@ -91,7 +91,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <property name="currentIndex">
-       <number>5</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="page_login">
        <property name="sizePolicy">
@@ -321,12 +321,36 @@
           </item>
          </layout>
         </item>
-        <item row="2" column="0">
-         <widget class="QPushButton" name="applyButtonGroupTable">
-          <property name="text">
-           <string>Apply</string>
-          </property>
-         </widget>
+        <item row="3" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <spacer name="horizontalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="undoChangesButtonGroupTable">
+            <property name="text">
+             <string>Undo changes</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="applyButtonGroupTable">
+            <property name="text">
+             <string>Apply</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -949,10 +973,42 @@
          </widget>
         </item>
         <item>
-         <widget class="QTableWidget" name="table_pending"/>
+         <widget class="QTableWidget" name="table_pending">
+          <property name="styleSheet">
+           <string notr="true">#table_pending {background-color: transparent ; gridline-color: gray } </string>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Plain</enum>
+          </property>
+          <property name="lineWidth">
+           <number>0</number>
+          </property>
+          <property name="gridStyle">
+           <enum>Qt::DotLine</enum>
+          </property>
+          <property name="cornerButtonEnabled">
+           <bool>false</bool>
+          </property>
+          <attribute name="horizontalHeaderHighlightSections">
+           <bool>true</bool>
+          </attribute>
+         </widget>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
           <item>
            <widget class="QPushButton" name="btn_pending_back">
             <property name="text">
@@ -1134,22 +1190,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>applyButtonGroupTable</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>CheckGroupTableDifferences()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>399</x>
-     <y>546</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>tableGroupEdition</sender>
    <signal>cellChanged(int,int)</signal>
    <receiver>MainWindow</receiver>
@@ -1181,6 +1221,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>applyButtonGroupTable</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>CheckGroupTableDifferences()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>399</x>
+     <y>546</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>undoChangesButtonGroupTable</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>RestoreGroupTable()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>632</x>
+     <y>545</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>CellChangedGroupTable(int,int)</slot>
@@ -1188,5 +1260,6 @@
   <slot>PopulateGroupTableWithFilter()</slot>
   <slot>CheckGroupTableDifferences()</slot>
   <slot>PendingBack()</slot>
+  <slot>RestoreGroupTable()</slot>
  </slots>
 </ui>

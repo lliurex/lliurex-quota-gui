@@ -33,6 +33,7 @@ public slots:
     void CheckGroupTableDifferences();
     void CellChangedGroupTable(int row, int col);
     void PendingBack();
+    void RestoreGroupTable();
     // IMPLEMENTING
     // void InitPopulateTable();
 
@@ -64,6 +65,7 @@ private:
     void StoreGolemGroups(QString result); //cb GetGolemGroups
     void InitializeTable(QTableWidget* item);
     void PopulateTable(QMap<QString,QStringList>* data, QTableWidget* table);
+    void PopulateGroupTableWithFilter(QMap<QString,QStringList>* content);
     void PopulateTable(QMap<QString,QStringList>* data, QTableWidget* table, QStringList showfilter, QStringList filter);
     void ChangePannel(QWidget* pannel);
     QMap<QString,QStringList> readViewTable(QTableWidget* table);
@@ -74,6 +76,7 @@ private:
     void showConfirmationTable(QTableWidget* table,QMap<QString,QStringList>* model);
     QString normalizeUnits(QString value);
     bool isValidQuotaValue(QString value);
+    void makeReadOnlyTable(QTableWidget* table);
 };
 
 #endif // MAINWINDOW_H
