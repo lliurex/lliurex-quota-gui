@@ -27,22 +27,18 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    examples.cpp \
-    n4d.cpp \
-    datamodel.cpp
+    n4d.cpp
 
 HEADERS += \
         mainwindow.h \
-    examples.h \
-    n4d.h \
-    datamodel.h
+    n4d.h
 
 FORMS += \
         mainwindow.ui
 
-DISTFILES += \
-    banner.png \
-    configured.png
+#DISTFILES += \
+#    banner.png \
+#    configured.png
 
 RESOURCES += \
     resources.qrc

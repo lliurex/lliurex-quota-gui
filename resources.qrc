@@ -4,5 +4,6 @@
         <file>configured.png</file>
         <file>unconfigured.png</file>
         <file>editor.png</file>
+        <file>group.png</file>
     </qresource>
 </RCC>

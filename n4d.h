@@ -43,10 +43,6 @@ private:
     void process_params(xmlrpc_c::paramList &callParams, vector<string> params);
 };
 
-namespace N4DWorker{
-    class QtN4DWorker;
-}
-
 class QtN4DWorker: public QObject{
     Q_OBJECT
 

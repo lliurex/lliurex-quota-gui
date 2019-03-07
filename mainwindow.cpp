@@ -1,16 +1,16 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-//#include "qgraphicsproxywidget.h"
-#include "qdebug.h"
-#include "n4d.cpp"
-//#include "datamodel.h"
 
+#include "n4d.h"
+
+#include <QDebug>
 #include <QThread>
 #include <QStandardItemModel>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QRegularExpression>
+#include <QTableWidget>
 
 #include <algorithm>
 
@@ -19,50 +19,18 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    tablewidgets = {ui->tableGroupEdition,ui->table_pending};
+    tablewidgets = {ui->tableGroupEdition,ui->table_pending,ui->tableUserEdition};
     for (auto const& k: tablewidgets){
-        enable_watch_group_table.insert(k,false);
+        enable_watch_table.insert(k,false);
+        pending_changes.insert(k,false);
     }
+
     ChangePannel(ui->page_login);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete map_group_info;
-}
-
-/*
- * CONFIGURATION METHOD TO RUN THREADED N4D CALL
- * */
-void MainWindow::InitN4DCall(QtN4DWorker::Methods method){
-
-    local_thread = new QThread;
-    QtN4DWorker* worker = new QtN4DWorker();
-    worker->set_auth(n4duser,n4dpwd);
-    worker->moveToThread(local_thread);
-
-    switch(method){
-        case QtN4DWorker::Methods::LOGIN:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(validate_user()));
-            break;
-        case QtN4DWorker::Methods::GET_DATA:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(get_table_data()));
-            break;
-        case QtN4DWorker::Methods::GET_STATUS:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(get_system_status()));
-            break;
-        case QtN4DWorker::Methods::GET_CONFIGURED:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(get_configured_status()));
-            break;
-        case QtN4DWorker::Methods::GET_GOLEM_GROUPS:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(get_golem_groups()));
-            break;
-    };
-
-    connect(worker, SIGNAL(n4d_call_completed(QtN4DWorker::Methods,QString)),this, SLOT(ProcessCallback(QtN4DWorker::Methods,QString)));
-    local_thread->start();
-    qDebug() << "Running N4D Call " << method;
 }
 
 /*
@@ -119,6 +87,13 @@ void MainWindow::InitGetQuotaGroups(){
 }
 
 /*
+ * SLOT THAT START TO GET CLASSROOM GROUPS
+ * */
+void MainWindow::InitGetGolemGroups(){
+    InitN4DCall(QtN4DWorker::Methods::GET_GOLEM_GROUPS);
+}
+
+/*
  * SLOT THAT START TO GET USERS QUOTA
  * */
 //void MainWindow::InitPopulateTable(){
@@ -126,10 +101,128 @@ void MainWindow::InitGetQuotaGroups(){
 //}
 
 /*
- * SLOT THAT START TO GET CLASSROOM GROUPS
+ * SLOT TO SETUP GROUP FILTER FROM CHECKBOX
  * */
-void MainWindow::InitGetGolemGroups(){
-    InitN4DCall(QtN4DWorker::Methods::GET_GOLEM_GROUPS);
+void MainWindow::PopulateGroupTableWithFilter(){
+    QStringList filter_show;
+
+    if (ui->check_show_all_groups->isChecked()){
+        filter_show.clear();
+    }else{
+        filter_show = QStringList::fromStdList({"students","teachers","admins"});
+        filter_show += golem_groups;
+    }
+    PopulateTableWithFilters(ui->tableGroupEdition,filter_show,QStringList(),ui->txt_filter_group_table,false);
+}
+
+/*
+ * SLOT TO SETUP USER FILTER FROM CHECKBOX
+ * */
+void MainWindow::PopulateUserTableWithFilter(){
+    PopulateTableWithFilters(ui->tableUserEdition,QStringList(),QStringList(),ui->txt_filter_user_table,false);
+}
+
+/*
+ * SLOT UNDOING CHANGES INTO GROUP TABLE
+ * */
+void MainWindow::ResetGroupTable(){
+    QStringList filter_remove;
+    QStringList filter_show;
+
+    filter_show = QStringList::fromStdList({"students","teachers","admins"});
+    filter_show += golem_groups;
+    PopulateTableWithFilters(ui->tableGroupEdition,filter_show,filter_remove,ui->txt_filter_group_table,true);
+
+}
+
+/*
+ * SLOT UNDOING CHANGES INTO USERS TABLE
+ * */
+void MainWindow::ResetUserTable(){
+    PopulateTableWithFilters(ui->tableUserEdition,QStringList(),QStringList(),ui->txt_filter_user_table,true);
+}
+
+/*
+ * SLOT FOR CHECKING TABLE DIFFERENCES & GO TO RESUME PAGE
+ * */
+void MainWindow::GoToResume(){
+    if (checkApplyButtons()){
+        ChangePannel(ui->page_write_changes);
+    }
+}
+
+/*
+ * SLOT THAT NORMALIZE, CHECK & ENABLE/DISABLE APPLY BUTTON ON USER TABLE
+ * */
+void MainWindow::CellChangedUserTable(int row,int col){
+    CellChanged(row,col,ui->tableUserEdition);
+    checkApplyButtons();
+}
+
+/*
+ * SLOT THAT NORMALIZE, CHECK & ENABLE/DISABLE APPLY BUTTON ON GROUP TABLE
+ * */
+void MainWindow::CellChangedGroupTable(int row,int col){
+    CellChanged(row,col,ui->tableGroupEdition);
+    checkApplyButtons();
+}
+
+/*
+ * SLOT TO RETURN TO EDITION TABLE
+ * */
+void MainWindow::PendingBack(){
+    ChangePannel(last_page_used.at(1));
+}
+
+/*
+ * ACTION SLOT TO SWITCH TO USER QUOTA EDITION
+ * */
+void MainWindow::SwitchUserEdition(){
+    ChangePannel(ui->page_edit_simple);
+}
+
+/*
+ * ACTION SLOT TO SWITCH TO GROUP QUOTA EDITION
+ * */
+void MainWindow::SwitchGroupEdition(){
+    ChangePannel(ui->page_group_edit);
+}
+
+/*************************************
+ *  END SLOTS
+ ************************************/
+
+/*
+ * CONFIGURATION METHOD TO RUN THREADED N4D CALL
+ * */
+void MainWindow::InitN4DCall(QtN4DWorker::Methods method){
+
+    local_thread = new QThread;
+    QtN4DWorker* worker = new QtN4DWorker();
+    worker->set_auth(n4duser,n4dpwd);
+    worker->moveToThread(local_thread);
+
+    switch(method){
+        case QtN4DWorker::Methods::LOGIN:
+            connect(local_thread, SIGNAL(started()), worker, SLOT(validate_user()));
+            break;
+        case QtN4DWorker::Methods::GET_DATA:
+            connect(local_thread, SIGNAL(started()), worker, SLOT(get_table_data()));
+            break;
+        case QtN4DWorker::Methods::GET_STATUS:
+            connect(local_thread, SIGNAL(started()), worker, SLOT(get_system_status()));
+            break;
+        case QtN4DWorker::Methods::GET_CONFIGURED:
+            connect(local_thread, SIGNAL(started()), worker, SLOT(get_configured_status()));
+            break;
+        case QtN4DWorker::Methods::GET_GOLEM_GROUPS:
+            connect(local_thread, SIGNAL(started()), worker, SLOT(get_golem_groups()));
+            break;
+    };
+
+    connect(worker, SIGNAL(n4d_call_completed(QtN4DWorker::Methods,QString)),this, SLOT(ProcessCallback(QtN4DWorker::Methods,QString)));
+    local_thread->start();
+    qDebug() << "Running N4D Call " << method;
 }
 
 /*
@@ -142,6 +235,8 @@ void MainWindow::ChangePannel(QWidget* pannel){
         ui->statusBar->showMessage(tr("Ready"),2000);
         ui->logo->setPixmap(QPixmap("://banner.png"));
         ui->logo->setAlignment(Qt::AlignCenter);
+        ui->actionGroupEditor->setDisabled(true);
+        ui->actionQuotaEditor->setDisabled(true);
         ui->logo->show();
         ui->toolBar->hide();
     }
@@ -149,6 +244,7 @@ void MainWindow::ChangePannel(QWidget* pannel){
         ui->logo->hide();
         ui->actionEnable->setEnabled(true);
         ui->actionDisable->setDisabled(true);
+        ui->actionGroupEditor->setDisabled(true);
         ui->actionQuotaEditor->setDisabled(true);
         ui->toolBar->show();
     }
@@ -157,21 +253,21 @@ void MainWindow::ChangePannel(QWidget* pannel){
         ui->actionEnable->setDisabled(true);
         ui->actionDisable->setEnabled(true);
         ui->actionQuotaEditor->setEnabled(true);
+        ui->actionGroupEditor->setDisabled(true);
         ui->toolBar->show();
-        if (last_page_used.size() > 1){
-            if (last_page_used.at(0) == ui->page_write_changes && last_page_used.at(1) == ui->page_group_edit){
-                ui->applyButtonGroupTable->setEnabled(true);
-            }else{
-                ui->applyButtonGroupTable->setDisabled(true);
-            }
-        }
-        enable_watch_group_table[ui->tableGroupEdition] = true;
+        enable_watch_table[ui->tableGroupEdition] = true;
+    }
+    if (pannel == ui->page_edit_simple){
+        ui->logo->hide();
+        ui->actionEnable->setDisabled(true);
+        ui->actionDisable->setEnabled(true);
+        ui->actionGroupEditor->setEnabled(true);
+        ui->actionQuotaEditor->setDisabled(true);
+        ui->toolBar->show();
+        enable_watch_table[ui->tableUserEdition] = true;
     }
     if (pannel == ui->page_write_changes){
-        QWidget* current = ui->stackedWidget->currentWidget();
-        if (current == ui->page_group_edit){
-            showConfirmationTable(ui->tableGroupEdition,map_group_info);
-        }
+        showConfirmationTable();
     }
 
     // Page history
@@ -181,19 +277,6 @@ void MainWindow::ChangePannel(QWidget* pannel){
     }
 
     ui->stackedWidget->setCurrentWidget(pannel);
-}
-
-/*
- * MAKE READ ONLY TABLE
- * */
-void MainWindow::makeReadOnlyTable(QTableWidget* table){
-    // Make read only
-    for (int col=0; col < table->columnCount(); col++){
-        for (int row=0; row < table->rowCount(); row++){
-            QTableWidgetItem* item = table->item(row,col);
-            item->setFlags(item->flags() ^ Qt::ItemIsEditable);
-        }
-    }
 }
 
 /*
@@ -232,24 +315,41 @@ void MainWindow::CompleteGetStatus(QString result){
  * */
 void MainWindow::CompleteGetConfigure(QString result){
     QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
+    qDebug() << res;
     if (res.isObject()){
         QJsonObject obj = res.object();
         QMap result = obj.toVariantMap();
-        result = result["groups"].toMap();
-        QStringList groups = result.keys();
-        QMap<QString,QStringList>* map = new QMap<QString,QStringList>;
-        QStringList headers = { "Quota" };
+        QMap<QString,QStringList>* map;
+        QStringList headers;
+        // Groups information
+        QMap<QString,QVariant> result_groups = result["groups"].toMap();
+        QStringList groups = result_groups.keys();
+        map = new QMap<QString,QStringList>;
+        headers = QStringList::fromStdList({ "Quota" });
         map->insert("__HEADER__",headers);
         for (int i=0; i < groups.size(); i++){
             QStringList tableitem;
-            tableitem << normalizeUnits(result[groups[i]].toMap()["quota"].toString());
+            tableitem << normalizeUnits(result_groups[groups[i]].toMap()["quota"].toString());
             map->insert(groups[i],tableitem);
         }
-        map_group_info = map;
-        PopulateGroupTableWithFilter();
+        modelmap.insert(ui->tableGroupEdition,map);
+        // Users information
+        QMap<QString,QVariant> result_users = result["users"].toMap();
+        QStringList users = result_users.keys();
+        map = new QMap<QString,QStringList>;
+        headers = QStringList::fromStdList({ "Quota" });
+        map->insert("__HEADER__",headers);
+        for (int i=0; i < users.size(); i++){
+            QStringList tableitem;
+            tableitem << normalizeUnits(result_users[users[i]].toMap()["quota"].toString());
+            map->insert(users[i],tableitem);
+        }
+        modelmap.insert(ui->tableUserEdition,map);
+
+        ResetGroupTable();
+        ResetUserTable();
     }
 }
-
 
 /*
  * Callback to store classroom groups
@@ -282,62 +382,68 @@ void MainWindow::InitializeTable(QTableWidget* item){
 }
 
 /*
- * SLOT TO SET GROUP FILTER FROM CHECKBOX
+ * MAKE READ ONLY TABLE
  * */
-void MainWindow::PopulateGroupTableWithFilter(){
-    QStringList filter_remove;
-    QStringList filter_show;
-
-    if (ui->check_show_all_groups->isChecked()){
-        filter_show.clear();
-    }else{
-        filter_show = QStringList::fromStdList({"students","teachers","admins"});
-        filter_show += golem_groups;
-    }
-    filter_remove.clear();
-    QMap<QString,QStringList> content = readViewTable(ui->tableGroupEdition);
-    if (content.isEmpty()){
-        for (auto const& k: map_group_info->keys()){
-            if (! k.contains(ui->txt_filter_group_table->text(),Qt::CaseInsensitive)){
-                filter_remove << k;
-            }
+void MainWindow::makeReadOnlyTable(QTableWidget* table){
+    // Make read only
+    for (int col=0; col < table->columnCount(); col++){
+        for (int row=0; row < table->rowCount(); row++){
+            QTableWidgetItem* item = table->item(row,col);
+            item->setFlags(item->flags() ^ Qt::ItemIsEditable);
         }
-        ui->applyButtonGroupTable->setDisabled(true);
-        PopulateTable(map_group_info,ui->tableGroupEdition,filter_show,filter_remove);
-    }else{
-        QMap<QString,QStringList> diff = getTableDifferences(map_group_info,&content);
-        if (diff.isEmpty()){
-            ui->applyButtonGroupTable->setDisabled(true);
-        }else{
-            ui->applyButtonGroupTable->setEnabled(true);
-        }
-        QMap<QString,QStringList> merged = ApplyChangesToModel(map_group_info,&diff);
-        for (auto const& k: merged.keys()){
-            if (! k.contains(ui->txt_filter_group_table->text(),Qt::CaseInsensitive)){
-                filter_remove << k;
-            }
-        }
-        PopulateTable(&merged,ui->tableGroupEdition,filter_show,filter_remove);
     }
 }
 
 /*
- * Initialize group table  & filters with supplied content
+ *
  * */
-void MainWindow::PopulateGroupTableWithFilter(QMap<QString,QStringList>* content){
+void MainWindow::PopulateTableWithFilters(QTableWidget* table, QStringList showfilter, QStringList filter, QLineEdit* txtfilter, bool overwrite=false){
     QStringList filter_remove;
     QStringList filter_show;
 
-    filter_show = QStringList::fromStdList({"students","teachers","admins"});
-    filter_show += golem_groups;
-    filter_remove.clear();
-    if (content->isEmpty()){
-        return;
+    filter_show = showfilter;
+    filter_remove = filter;
+
+    QMap<QString,QStringList> content;
+    if (overwrite){
+        content = *(modelmap.value(table));
     }else{
-        PopulateTable(content,ui->tableGroupEdition,filter_show,filter_remove);
-        ui->applyButtonGroupTable->setDisabled(true);
-        ui->txt_filter_group_table->setText("");
-        ui->check_show_all_groups->setChecked(false);
+        content = readViewTable(table);
+        if (content.isEmpty()){
+            return;
+        }
+    }
+
+    if (content.isEmpty()){
+        for (auto const& k: modelmap[table]->keys()){
+            if (! k.contains(txtfilter->text(),Qt::CaseInsensitive)){
+                filter_remove << k;
+            }
+        }
+        pending_changes[table]=false;
+        PopulateTable(modelmap.value(table),table,filter_show,filter_remove);
+        checkApplyButtons();
+    }else{
+        if (overwrite){
+            pending_changes[table]=false;
+            txtfilter->setText("");
+            PopulateTable(&content,table,filter_show,filter_remove);
+        }else{
+            QMap<QString,QStringList> diff = getTableDifferences(modelmap.value(table),&content);
+            if (diff.isEmpty()){
+                pending_changes[table] = false;
+            }else{
+                pending_changes[table] = true;
+            }
+            QMap<QString,QStringList> merged = ApplyChangesToModel(modelmap.value(table),&diff);
+            for (auto const& k: merged.keys()){
+                if (! k.contains(txtfilter->text(),Qt::CaseInsensitive)){
+                    filter_remove << k;
+                }
+            }
+            PopulateTable(&merged,table,filter_show,filter_remove);
+        }
+        checkApplyButtons();
     }
 }
 
@@ -353,7 +459,7 @@ void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* ta
  * */
 void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* table, QStringList showfilter, QStringList filter){
     InitializeTable(table);
-    enable_watch_group_table[table] = false;
+    enable_watch_table[table] = false;
     table->setColumnCount(data->value("__HEADER__").size());
     table->setHorizontalHeaderLabels(data->value("__HEADER__"));
     table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -396,7 +502,7 @@ void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* ta
             table->hideRow(0);
         }      
     }
-    enable_watch_group_table[table]=true;
+    enable_watch_table[table]=true;
 }
 
 /*
@@ -464,33 +570,6 @@ QMap<QString,QStringList> MainWindow::getTableDifferencesWithHeader(QMap<QString
 }
 
 /*
- * METHOD TO CHECK IF ONE TABLE IS MODIFIED td1 (base table), td2 (table to check)
- * */
-bool MainWindow::isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2){
-    QMap<QString,QStringList> result = getTableDifferences(td1,td2);
-    if (result.isEmpty()){
-        return false;
-    }else{
-        //qDebug() << result;
-        return true;
-    }
-}
-
-/*
- * SLOT FOR CHECKING GROUP TABLE DIFFERENCES
- * */
-void MainWindow::CheckGroupTableDifferences(){
-    QMap<QString,QStringList> result = readViewTable(ui->tableGroupEdition);
-    if (isModified(map_group_info,&result)){
-    //    qDebug() << "Distinct Table";
-        ChangePannel(ui->page_write_changes);
-    }
-    //else{
-    //    qDebug() << "Same Table";
-    //}
-}
-
-/*
  * Apply Changes to table model
  * */
 QMap<QString,QStringList> MainWindow::ApplyChangesToModel(QMap<QString,QStringList>* model,QMap<QString,QStringList>* changes){
@@ -508,46 +587,37 @@ QMap<QString,QStringList> MainWindow::ApplyChangesToModel(QMap<QString,QStringLi
 }
 
 /*
- * SLOT THAT ENABLES/DISABLE APPLY BUTTON ON GROUP TABLE
+ * METHOD TO CHECK IF ONE TABLE IS MODIFIED td1 (base table), td2 (table to check)
  * */
-void MainWindow::CellChangedGroupTable(int row,int col){
-    if (enable_watch_group_table.value(ui->tableGroupEdition)){
-        QString value = ui->tableGroupEdition->item(row,col)->text();
-        QString key = ui->tableGroupEdition->verticalHeaderItem(row)->text();
-        if (isValidQuotaValue(value)){
-            value = normalizeUnits(value);
-        }else{
-            value = map_group_info->value(key).at(col);
-            ui->statusBar->showMessage(tr("Invalid value"),5000);
-        }
-        enable_watch_group_table[ui->tableGroupEdition]=false;
-        ui->tableGroupEdition->item(row,col)->setText(value);
-        enable_watch_group_table[ui->tableGroupEdition]=true;
-
-        QMap<QString,QStringList> contents = readViewTable(ui->tableGroupEdition);
-        if (isModified(map_group_info,&contents)){
-            ui->applyButtonGroupTable->setEnabled(true);
-        }else{
-            ui->applyButtonGroupTable->setDisabled(true);
-        }
+bool MainWindow::isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2){
+    QMap<QString,QStringList> result = getTableDifferences(td1,td2);
+    if (result.isEmpty()){
+        return false;
+    }else{
+        //qDebug() << result;
+        return true;
     }
 }
 
 /*
  * SHOW PENDING CHANGES FOR GROUP ACTIONS
  * */
-void MainWindow::showConfirmationTable(QTableWidget* table,QMap<QString,QStringList>* model){
-    QMap<QString,QStringList> contents = readViewTable(table);
-    QMap<QString,QStringList> diff = getTableDifferencesWithHeader(model,&contents);
-    PopulateTable(&diff,ui->table_pending);
+void MainWindow::showConfirmationTable(){
+    enable_watch_table[ui->table_pending] = false;
+    QMap<QString,QStringList> contents;
+    QMap<QString,QStringList> contents_table;
+    for (auto const& table: tablewidgets){
+        if (table == ui->table_pending){
+            continue;
+        }
+        contents_table = readViewTable(table);
+        QMap<QString,QStringList> diff = getTableDifferencesWithHeader(modelmap[table],&contents_table);
+        if (diff.size() > 1){
+            contents = ApplyChangesToModel(&contents,&diff);
+        }
+    }
+    PopulateTable(&contents,ui->table_pending);
     makeReadOnlyTable(ui->table_pending);
-}
-
-/*
- * SLOT TO RETURN TO EDITION TABLE
- * */
-void MainWindow::PendingBack(){
-    ChangePannel(last_page_used.at(1));
 }
 
 /*
@@ -617,12 +687,45 @@ bool MainWindow::isValidQuotaValue(QString value){
 }
 
 /*
- * SLOT UNDOING CHANGES INTO GROUP TABLE
+ * DO ACTIONS WHEN CHANGED TABLE CELLS SLOTS ARE TRIGGERED
  * */
-void MainWindow::RestoreGroupTable(){
-    PopulateGroupTableWithFilter(map_group_info);
+void MainWindow::CellChanged(int row, int col, QTableWidget* table){
+    if (enable_watch_table.value(table)){
+        QString value = table->item(row,col)->text();
+        QString key = table->verticalHeaderItem(row)->text();
+        if (isValidQuotaValue(value)){
+            value = normalizeUnits(value);
+        }else{
+            value = modelmap[table]->value(key).at(col);
+            ui->statusBar->showMessage(tr("Invalid value"),5000);
+        }
+        enable_watch_table[table]=false;
+        table->item(row,col)->setText(value);
+        enable_watch_table[table]=true;
+        QMap<QString,QStringList> contents = readViewTable(table);
+        if (isModified(modelmap[table],&contents)){
+            pending_changes[table]=true;
+        }else{
+            pending_changes[table]=false;
+        }
+        checkApplyButtons();
+    }
 }
 
+/*
+ * ENABLE/DISABLE APPLY BUTTON
+ * */
+bool MainWindow::checkApplyButtons(){
+    if (pending_changes[ui->tableGroupEdition] || pending_changes[ui->tableUserEdition]){
+        ui->applyButtonGroupTable->setEnabled(true);
+        ui->applyButtonUserTable->setEnabled(true);
+        return true;
+    }else{
+        ui->applyButtonGroupTable->setDisabled(true);
+        ui->applyButtonUserTable->setDisabled(true);
+        return false;
+    }
+}
 /*
  * OLD CODE
  *
