@@ -24,25 +24,58 @@ MainWindow::MainWindow(QWidget *parent) :
         enable_watch_table.insert(k,false);
         pending_changes.insert(k,false);
     }
-
+    non_editable_columns.insert(ui->tableUserEdition,QStringList({tr("Used"),tr("QuotaApplied")}));
+    PrepareTableMaps();
     ChangePannel(ui->page_login);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    for (auto const& k: tablewidgets){
+        if (k != ui->table_pending){
+            delete modelmap.value(k);
+        }
+    }
 }
 
+void MainWindow::PrepareTableMaps(){
+    QMap<QString,QStringList>* map;
+    QStringList headers;
+
+    for (auto const& t: tablewidgets){
+        if (t == ui->table_pending){
+            continue;
+        }else{
+            map = new QMap<QString,QStringList>;
+            if (t == ui->tableGroupEdition){
+                headers = QStringList::fromStdList({ tr("Quota") });
+            }else{
+                headers = QStringList::fromStdList({ tr("Quota") , tr("Used") , tr("QuotaApplied") });
+            }
+            map->insert("__HEADER__",headers);
+            if (!modelmap.contains(t)){
+                modelmap.insert(t,map);
+            }else{
+                delete modelmap.value(t);
+                modelmap.insert(t,map);
+            }
+        }
+    }
+}
 /*
  * COMMON CALLBACK FROM N4D CALL
  * */
 void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned){
+    if (!completedTasks.keys().contains(from)){
+        completedTasks.insert(from,false);
+    }
     switch (from){
         case QtN4DWorker::Methods::LOGIN:
             CheckValidation(returned);
             break;
         case QtN4DWorker::Methods::GET_DATA:
-//            CompletePopulate(returned);
+            CompleteGetData(returned);
             break;
         case QtN4DWorker::Methods::GET_STATUS:
             CompleteGetStatus(returned);
@@ -54,8 +87,23 @@ void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned){
             StoreGolemGroups(returned);
             break;
     };
-    qDebug() << "Result from N4D:" << from;
-    qDebug() << returned;
+    completedTasks[from] = true;
+    runWhenCompletedTask();
+    //qDebug() << "Result from N4D:" << from;
+    //qDebug() << returned;
+}
+
+/*
+ * RUN ACTIONS MULTIPLE DEPENDENT FROM CALLBACK
+ * */
+void MainWindow::runWhenCompletedTask(){
+    if (    completedTasks.contains(QtN4DWorker::Methods::GET_DATA) &&
+            completedTasks.contains(QtN4DWorker::Methods::GET_STATUS) &&
+            completedTasks.value(QtN4DWorker::Methods::GET_DATA) &&
+            completedTasks.value(QtN4DWorker::Methods::GET_STATUS)){
+        ResetGroupTable();
+        ResetUserTable();
+    }
 }
 
 /*
@@ -70,6 +118,13 @@ void MainWindow::InitValidation(){
         return;
     }
     InitN4DCall(QtN4DWorker::Methods::LOGIN);
+}
+
+/*
+ * SLOT TO START TO GET CURRENT SYSTEM APPLIED QUOTAS
+ * */
+void MainWindow::InitGetCurrentQuotas(){
+    InitN4DCall(QtN4DWorker::Methods::GET_DATA);
 }
 
 /*
@@ -315,39 +370,88 @@ void MainWindow::CompleteGetStatus(QString result){
  * */
 void MainWindow::CompleteGetConfigure(QString result){
     QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
-    qDebug() << res;
     if (res.isObject()){
         QJsonObject obj = res.object();
         QMap result = obj.toVariantMap();
         QMap<QString,QStringList>* map;
-        QStringList headers;
+
         // Groups information
         QMap<QString,QVariant> result_groups = result["groups"].toMap();
         QStringList groups = result_groups.keys();
-        map = new QMap<QString,QStringList>;
-        headers = QStringList::fromStdList({ "Quota" });
-        map->insert("__HEADER__",headers);
+        QRegularExpression regexp1 = QRegularExpression(tr("Quota"),QRegularExpression::CaseInsensitiveOption);
+        int header_size1 = modelmap[ui->tableGroupEdition]->value("__HEADER__").size();
+        int position1 = modelmap[ui->tableGroupEdition]->value("__HEADER__").indexOf(regexp1);
+        map = modelmap.value(ui->tableGroupEdition);
         for (int i=0; i < groups.size(); i++){
+            QString value = normalizeUnits(result_groups[groups[i]].toMap()["quota"].toString());
             QStringList tableitem;
-            tableitem << normalizeUnits(result_groups[groups[i]].toMap()["quota"].toString());
+            if (map->contains(groups[i])){
+                tableitem = map->value(groups[i]);
+            }else{
+                for (int i=0; i<header_size1; i++){
+                    tableitem << "";
+                }
+            }
+            tableitem.replace(position1,value);
             map->insert(groups[i],tableitem);
         }
-        modelmap.insert(ui->tableGroupEdition,map);
+
         // Users information
         QMap<QString,QVariant> result_users = result["users"].toMap();
         QStringList users = result_users.keys();
-        map = new QMap<QString,QStringList>;
-        headers = QStringList::fromStdList({ "Quota" });
-        map->insert("__HEADER__",headers);
+        QRegularExpression regexp2 = QRegularExpression(tr("Quota"),QRegularExpression::CaseInsensitiveOption);
+        int header_size2 = modelmap[ui->tableUserEdition]->value("__HEADER__").size();
+        int position2 = modelmap[ui->tableUserEdition]->value("__HEADER__").indexOf(regexp2);
+        map = modelmap.value(ui->tableUserEdition);
         for (int i=0; i < users.size(); i++){
+            QString value = normalizeUnits(result_users[users[i]].toMap()["quota"].toString());
             QStringList tableitem;
-            tableitem << normalizeUnits(result_users[users[i]].toMap()["quota"].toString());
+            if (map->contains(users[i])){
+                tableitem = map->value(users[i]);
+            }else{
+                for (int i=0; i<header_size2; i++){
+                    tableitem << "0K";
+                }
+            }
+            tableitem.replace(position2,value);
             map->insert(users[i],tableitem);
         }
-        modelmap.insert(ui->tableUserEdition,map);
+    }
+}
 
-        ResetGroupTable();
-        ResetUserTable();
+/*
+ * CALLBACK FROM GET SYSTEM APPLIED QUOTAS & SPACE USED
+ * */
+void MainWindow::CompleteGetData(QString result){
+    QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
+    if (res.isObject()){
+        QJsonObject obj = res.object();
+        QMap result = obj.toVariantMap();
+        QMap<QString,QStringList>* map;
+
+        map = modelmap[ui->tableUserEdition];
+        QRegularExpression regexp_spaceused = QRegularExpression(tr("Used"),QRegularExpression::CaseInsensitiveOption);
+        QRegularExpression regexp_hardquota = QRegularExpression(tr("QuotaApplied"),QRegularExpression::CaseInsensitiveOption);
+        int position_spaceused = map->value("__HEADER__").indexOf(regexp_spaceused);
+        int position_hardquota = map->value("__HEADER__").indexOf(regexp_hardquota);
+        int header_size = map->value("__HEADER__").size();
+        QStringList keys = result.keys();
+        for (auto const& k: keys){
+            QMap<QString,QVariant> user_data_quotas = result[k].toMap();
+            QString spaceused = user_data_quotas.value("spaceused").toString();
+            QString hardlimit = user_data_quotas.value("spacehardlimit").toString();
+            QStringList tableitem;
+            if (map->contains(k)){
+                tableitem = map->value(k);
+            }else{
+                for (int i=0; i<header_size; i++){
+                    tableitem << "0K";
+                }
+            }
+            tableitem.replace(position_spaceused,spaceused);
+            tableitem.replace(position_hardquota,hardlimit);
+            map->insert(k,tableitem);
+        }
     }
 }
 
@@ -367,6 +471,7 @@ void MainWindow::StoreGolemGroups(QString returned){
             }
         }
     }
+    InitGetCurrentQuotas();
     InitCheckStatus();
 }
 
@@ -501,6 +606,17 @@ void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* ta
         if (keys_to_hide.contains(k)){
             table->hideRow(0);
         }      
+    }
+
+    // Make non editable columns
+    for (int col=0; col < table->columnCount(); col++){
+        if (non_editable_columns[table].contains(table->horizontalHeaderItem(col)->text())){
+            for (int row=0 ; row < table->rowCount(); row++){
+                QTableWidgetItem *item = table->item(row,col);
+                item->setFlags(item->flags() ^ Qt::ItemIsEditable);
+                item->setBackground(QBrush(ui->centralWidget->palette().color(QWidget::backgroundRole())));
+            }
+        }
     }
     enable_watch_table[table]=true;
 }

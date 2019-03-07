@@ -30,10 +30,10 @@ public:
 
 public slots:
     void ProcessCallback(QtN4DWorker::Methods, QString returned);
-
     void InitValidation();
     void InitCheckStatus();
     void InitGetQuotaGroups();
+    void InitGetCurrentQuotas();
     void InitGetGolemGroups();
     void PopulateGroupTableWithFilter();
     void PopulateUserTableWithFilter();
@@ -50,21 +50,26 @@ private:
     Ui::MainWindow *ui;
     QThread* local_thread;
     QString n4duser, n4dpwd;
+    QMap<QtN4DWorker::Methods,bool> completedTasks;
     QList<QWidget*> last_page_used;
     QList<QTableWidget*> tablewidgets;
     QStringList golem_groups;
     QMap<QTableWidget*,bool> enable_watch_table;
+    QMap<QTableWidget*,QStringList> non_editable_columns;
     QMap<QTableWidget*,QMap<QString,QStringList>*> modelmap;
     QMap<QTableWidget*,bool> pending_changes;
 
     void InitN4DCall(QtN4DWorker::Methods method);
-    void ChangePannel(QWidget* pannel);
+    void runWhenCompletedTask();
 
     void CheckValidation(QString result); //cb InitValidation
+    void CompleteGetData(QString result); //cb GET_DATA
     void CompleteGetStatus(QString result); //cb CheckStatus
     void CompleteGetConfigure(QString result); //cb InitGetQuotaGroups
     void StoreGolemGroups(QString result); //cb GetGolemGroups
 
+    void PrepareTableMaps();
+    void ChangePannel(QWidget* pannel);
     void InitializeTable(QTableWidget* item);
     void makeReadOnlyTable(QTableWidget* table);
     void PopulateTableWithFilters(QTableWidget* table, QStringList showfilter, QStringList filter, QLineEdit* txtfilter, bool overwrite);
