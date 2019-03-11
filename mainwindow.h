@@ -29,7 +29,7 @@ public:
     ~MainWindow();
 
 public slots:
-    void ProcessCallback(QtN4DWorker::Methods, QString returned);
+    void ProcessCallback(QtN4DWorker::Methods, QString returned, int serial);
     void InitValidation();
     void InitCheckStatus();
     void InitGetQuotaGroups();
@@ -45,10 +45,16 @@ public slots:
     void PendingBack();
     void SwitchUserEdition();
     void SwitchGroupEdition();
+    void Enable();
+    void Disable();
+    void removeThread(int i);
+    void PendingApply();
 
 private:
     Ui::MainWindow *ui;
-    QThread* local_thread;
+
+    // System structures
+    QMap<int,QThread*> local_thread;
     QString n4duser, n4dpwd;
     QMap<QtN4DWorker::Methods,bool> completedTasks;
     QList<QWidget*> last_page_used;
@@ -58,6 +64,10 @@ private:
     QMap<QTableWidget*,QStringList> non_editable_columns;
     QMap<QTableWidget*,QMap<QString,QStringList>*> modelmap;
     QMap<QTableWidget*,bool> pending_changes;
+    QList<QStringList> changes_to_apply;
+
+    void init_structures(bool init_threads);
+    void destroy_structures(bool init_threads);
 
     void InitN4DCall(QtN4DWorker::Methods method);
     void runWhenCompletedTask();
@@ -67,6 +77,8 @@ private:
     void CompleteGetStatus(QString result); //cb CheckStatus
     void CompleteGetConfigure(QString result); //cb InitGetQuotaGroups
     void StoreGolemGroups(QString result); //cb GetGolemGroups
+    void SystemIsEnabled(QString result); //cb Enable
+    void SystemIsDisabled(QString result); //cb Disable
 
     void PrepareTableMaps();
     void ChangePannel(QWidget* pannel);
@@ -79,6 +91,7 @@ private:
     QMap<QString,QStringList> getTableDifferences(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2);
     QMap<QString,QStringList> getTableDifferencesWithHeader(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2);
     QMap<QString,QStringList> ApplyChangesToModel(QMap<QString,QStringList>* model,QMap<QString,QStringList>* changes);
+    bool MakeSameCols(QMap<QString,QStringList> &model,QMap<QString,QStringList> &changes);
     bool isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2);
     void showConfirmationTable();
 

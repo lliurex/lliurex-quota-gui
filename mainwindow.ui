@@ -91,7 +91,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="page_login">
        <property name="sizePolicy">
@@ -894,6 +894,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionEnable</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>Enable()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionDisable</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>Disable()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_pending_apply</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>PendingApply()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>738</x>
+     <y>545</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>CellChangedGroupTable(int,int)</slot>
@@ -907,5 +955,8 @@
   <slot>PopulateUserTableWithFilter()</slot>
   <slot>ResetUserTable()</slot>
   <slot>CellChangedUserTable(int,int)</slot>
+  <slot>Enable()</slot>
+  <slot>Disable()</slot>
+  <slot>PendingApply()</slot>
  </slots>
 </ui>

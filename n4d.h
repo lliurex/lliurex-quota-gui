@@ -47,15 +47,16 @@ class QtN4DWorker: public QObject{
     Q_OBJECT
 
 public:
-    enum class Methods { LOGIN, GET_DATA, GET_STATUS, GET_CONFIGURED, GET_GOLEM_GROUPS };
+    enum class Methods { LOGIN, GET_DATA, GET_STATUS, GET_CONFIGURED, GET_GOLEM_GROUPS, DISABLE_SYSTEM, ENABLE_SYSTEM };
     Q_ENUM(Methods)
 
-    QtN4DWorker();
+    QtN4DWorker(int nworker);
     ~QtN4DWorker();
     void set_auth(QString user_param, QString pwd_param);
 
 signals:
-    void n4d_call_completed(QtN4DWorker::Methods from, QString result);
+    void n4d_call_completed(QtN4DWorker::Methods from, QString result, int serial);
+    void finished_thread(int serial);
 
 public slots:
     void validate_user();
@@ -63,10 +64,13 @@ public slots:
     void get_system_status();
     void get_configured_status();
     void get_golem_groups();
+    void enable_system();
+    void disable_system();
 
 private:
     N4D* n4d;
     QString user,pwd;
+    int serial;
 };
 
 enum class n4dtypetokens { START_ARRAY, END_ARRAY, START_STRUCT, END_STRUCT, STRUCT_KEY, STRUCT_SEPARATOR, NEXT_ITEM, TYPE_SEPARATOR, TYPE_STRING, TYPE_INT, TYPE_ARRAY, TYPE_STRUCT, TYPE_BOOL, OP_EQUAL, ANY};

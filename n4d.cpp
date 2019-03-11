@@ -12,6 +12,8 @@
 #include <xmlrpc-c/client_simple.hpp>
 #include "n4d.h"
 
+#include <QDebug>
+
 #include <QString>
 using namespace std;
 
@@ -433,8 +435,9 @@ string N4D::make_call(string n4dHost="", string authUser="", string authPwd="", 
 // value: any_struct->any_field=one_value, any_array[]=any_struct->any_field=one_value, any_type=any_value
 
 
-QtN4DWorker::QtN4DWorker(){
+QtN4DWorker::QtN4DWorker(int nworker){
     qRegisterMetaType<QtN4DWorker::Methods>("Methods");
+    serial = nworker;
     n4d = new N4D();
 }
 
@@ -449,27 +452,86 @@ void QtN4DWorker::set_auth(QString user_param, QString pwd_param){
 
 void QtN4DWorker::validate_user(){
     string res = n4d->validate_user(user.toStdString(),pwd.toStdString());
-    emit n4d_call_completed(Methods::LOGIN,QString(res.data()));
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting call completed " << serial;
+#endif
+    emit n4d_call_completed(Methods::LOGIN,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting finishedThread"  << serial;
+#endif
+    emit finished_thread(serial);
 }
 
 void QtN4DWorker::get_table_data(){
     string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","get_quotas",false);
-    emit n4d_call_completed(Methods::GET_DATA,QString(res.data()));
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting call completed " << serial;
+#endif
+    emit n4d_call_completed(Methods::GET_DATA,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting finishedThread"  << serial;
+#endif
+    emit finished_thread(serial);
 }
 
 void QtN4DWorker::get_system_status(){
     string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","get_local_status",false);
-    emit n4d_call_completed(Methods::GET_STATUS,QString(res.data()));
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting call completed " << serial;
+#endif
+    emit n4d_call_completed(Methods::GET_STATUS,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting finishedThread"  << serial;
+#endif
+    emit finished_thread(serial);
 }
 
 void QtN4DWorker::get_configured_status(){
     string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","get_quotafile",false);
-    emit n4d_call_completed(Methods::GET_CONFIGURED,QString(res.data()));
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting call completed " << serial;
+#endif
+    emit n4d_call_completed(Methods::GET_CONFIGURED,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting finishedThread"  << serial;
+#endif
+    emit finished_thread(serial);
 }
 
 void QtN4DWorker::get_golem_groups(){
     string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"Golem","get_available_groups",false);
-    emit n4d_call_completed(Methods::GET_GOLEM_GROUPS,QString(res.data()));
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting call completed " << serial;
+#endif
+    emit n4d_call_completed(Methods::GET_GOLEM_GROUPS,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting finishedThread"  << serial;
+#endif
+    emit finished_thread(serial);
+}
+
+void QtN4DWorker::enable_system(){
+    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","configure_net_serversync",false);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting call completed " << serial;
+#endif
+    emit n4d_call_completed(Methods::ENABLE_SYSTEM,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting finishedThread"  << serial;
+#endif
+    emit finished_thread(serial);
+}
+
+void QtN4DWorker::disable_system(){
+    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","deconfigure_net_serversync",false);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting call completed " << serial;
+#endif
+    emit n4d_call_completed(Methods::DISABLE_SYSTEM,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting finishedThread"  << serial;
+#endif
+    emit finished_thread(serial);
 }
 
 string n4dresult2json(string result){

@@ -13,12 +13,39 @@
 #include <QTableWidget>
 
 #include <algorithm>
-
+#include <thread>
+#include <chrono>
+/*
+ * Constructors
+ * */
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    init_structures(true);
+    ChangePannel(ui->page_login);
+}
+
+/*
+ * Initializes all private vars & structures
+ * */
+void MainWindow::init_structures(bool init_threads=true){
+    if (init_threads){
+        local_thread.clear();
+    }
+    n4duser = "";
+    n4dpwd = "";
+    completedTasks.clear();
+    changes_to_apply.clear();
+    last_page_used.clear();
+    tablewidgets.clear();
+    golem_groups.clear();
+    enable_watch_table.clear();
+    non_editable_columns.clear();
+    modelmap.clear();
+    pending_changes.clear();
+
     tablewidgets = {ui->tableGroupEdition,ui->table_pending,ui->tableUserEdition};
     for (auto const& k: tablewidgets){
         enable_watch_table.insert(k,false);
@@ -26,12 +53,26 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     non_editable_columns.insert(ui->tableUserEdition,QStringList({tr("Used"),tr("QuotaApplied")}));
     PrepareTableMaps();
-    ChangePannel(ui->page_login);
 }
 
+/*
+ * Destructors
+ * */
 MainWindow::~MainWindow()
 {
+    destroy_structures(true);
     delete ui;
+}
+
+/*
+ * Destroy all private vars & structures
+ * */
+void MainWindow::destroy_structures(bool init_threads=true){
+    if (init_threads){
+        for (auto const& k: local_thread.keys()){
+            removeThread(k);
+        }
+    }
     for (auto const& k: tablewidgets){
         if (k != ui->table_pending){
             delete modelmap.value(k);
@@ -40,7 +81,7 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::PrepareTableMaps(){
-    QMap<QString,QStringList>* map;
+    QMap<QString,QStringList>* map = nullptr;
     QStringList headers;
 
     for (auto const& t: tablewidgets){
@@ -66,7 +107,8 @@ void MainWindow::PrepareTableMaps(){
 /*
  * COMMON CALLBACK FROM N4D CALL
  * */
-void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned){
+void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned, int serial){
+    Q_UNUSED(serial);
     if (!completedTasks.keys().contains(from)){
         completedTasks.insert(from,false);
     }
@@ -86,11 +128,19 @@ void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned){
         case QtN4DWorker::Methods::GET_GOLEM_GROUPS:
             StoreGolemGroups(returned);
             break;
+        case QtN4DWorker::Methods::ENABLE_SYSTEM:
+            SystemIsEnabled(returned);
+            break;
+        case QtN4DWorker::Methods::DISABLE_SYSTEM:
+            SystemIsDisabled(returned);
+            break;
     };
     completedTasks[from] = true;
     runWhenCompletedTask();
-    //qDebug() << "Result from N4D:" << from;
-    //qDebug() << returned;
+#ifdef N4D_SHOW_RESULT
+    qDebug() << "Result from N4D:" << from;
+    qDebug() << returned;
+#endif
 }
 
 /*
@@ -131,6 +181,14 @@ void MainWindow::InitGetCurrentQuotas(){
  * SLOT THAT BEGIN TO GET SYSTEM STATUS
  * */
 void MainWindow::InitCheckStatus(){
+    QString u = n4duser;
+    QString p = n4dpwd;
+    QStringList golem = golem_groups;
+    destroy_structures(false);
+    init_structures(false);
+    golem_groups = golem;
+    n4duser = u;
+    n4dpwd = p;
     InitN4DCall(QtN4DWorker::Methods::GET_STATUS);
 }
 
@@ -147,13 +205,6 @@ void MainWindow::InitGetQuotaGroups(){
 void MainWindow::InitGetGolemGroups(){
     InitN4DCall(QtN4DWorker::Methods::GET_GOLEM_GROUPS);
 }
-
-/*
- * SLOT THAT START TO GET USERS QUOTA
- * */
-//void MainWindow::InitPopulateTable(){
-//    InitN4DCall(QtN4DWorker::Methods::GET_DATA);
-//}
 
 /*
  * SLOT TO SETUP GROUP FILTER FROM CHECKBOX
@@ -243,41 +294,107 @@ void MainWindow::SwitchGroupEdition(){
     ChangePannel(ui->page_group_edit);
 }
 
+/*
+ * ACTION SLOT TO ENABLE SYSTEM QUOTAS
+ * */
+void MainWindow::Enable(){
+    InitN4DCall(QtN4DWorker::Methods::ENABLE_SYSTEM);
+}
+
+/*
+ * ACTION SLOT TO DISABLE SYSTEM QUOTAS
+ * */
+void MainWindow::Disable(){
+    InitN4DCall(QtN4DWorker::Methods::DISABLE_SYSTEM);
+}
+
+/*
+ *
+ * */
+void MainWindow::PendingApply(){
+    qDebug() << "Applying changes:";
+    for (auto sl: changes_to_apply){
+        // List of changes contains tuples (QStringList) whose items are:
+        // QStringList(name, user/group, quotaoldvalue, quotavalue)
+        qDebug() << "I will modify " << sl.at(1) << " " << sl.at(0) << " from " << sl.at(2) << " to " << sl.at(3);
+    }
+}
+
 /*************************************
  *  END SLOTS
  ************************************/
+
+void MainWindow::removeThread(int i){
+#ifdef RUNNING_THREADS
+    qDebug() << "RemoveThread: Finishing thread " << i;
+#endif
+    if (local_thread.contains(i)){
+        while (local_thread.value(i)->isRunning()){
+#ifdef RUNNING_THREADS
+            qDebug() << "RemoveThread: Waiting to finish " << i;
+#endif
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+#ifdef RUNNING_THREADS
+        qDebug() << "RemoveThread: Ended " << i;
+#endif
+        delete local_thread.value(i);
+        local_thread.remove(i);
+#ifdef RUNNING_THREADS
+        qDebug() << "RemoveThread: Deleted thread " << i;
+#endif
+    }
+}
 
 /*
  * CONFIGURATION METHOD TO RUN THREADED N4D CALL
  * */
 void MainWindow::InitN4DCall(QtN4DWorker::Methods method){
-
-    local_thread = new QThread;
-    QtN4DWorker* worker = new QtN4DWorker();
+    int i=0;
+    QList serials = local_thread.keys();
+    for (i=0; i<100; i++){
+       if (!serials.contains(i)){
+           break;
+       }
+    }
+    local_thread.insert(i,new QThread);
+    QtN4DWorker* worker = new QtN4DWorker(i);
     worker->set_auth(n4duser,n4dpwd);
-    worker->moveToThread(local_thread);
+    worker->moveToThread(local_thread.value(i));
 
     switch(method){
         case QtN4DWorker::Methods::LOGIN:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(validate_user()));
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(validate_user()));
             break;
         case QtN4DWorker::Methods::GET_DATA:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(get_table_data()));
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(get_table_data()));
             break;
         case QtN4DWorker::Methods::GET_STATUS:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(get_system_status()));
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(get_system_status()));
             break;
         case QtN4DWorker::Methods::GET_CONFIGURED:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(get_configured_status()));
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(get_configured_status()));
             break;
         case QtN4DWorker::Methods::GET_GOLEM_GROUPS:
-            connect(local_thread, SIGNAL(started()), worker, SLOT(get_golem_groups()));
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(get_golem_groups()));
+            break;
+        case QtN4DWorker::Methods::ENABLE_SYSTEM:
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(enable_system()));
+            break;
+        case QtN4DWorker::Methods::DISABLE_SYSTEM:
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(disable_system()));
             break;
     };
-
-    connect(worker, SIGNAL(n4d_call_completed(QtN4DWorker::Methods,QString)),this, SLOT(ProcessCallback(QtN4DWorker::Methods,QString)));
-    local_thread->start();
-    qDebug() << "Running N4D Call " << method;
+#ifdef RUNNING_THREADS
+    qDebug() << "Connecting signals " << i;
+#endif
+    connect(worker, SIGNAL(n4d_call_completed(QtN4DWorker::Methods,QString,int)),this, SLOT(ProcessCallback(QtN4DWorker::Methods,QString,int)));
+    connect(worker, SIGNAL(finished_thread(int)),local_thread.value(i), SLOT(quit()));
+    connect(worker, SIGNAL(finished_thread(int)),worker, SLOT(deleteLater()));
+    connect(local_thread.value(i),SIGNAL(finished()),local_thread.value(i),SLOT(deleteLater()));
+    connect(worker, SIGNAL(finished_thread(int)),this, SLOT(removeThread(int)));
+    local_thread.value(i)->start();
+    qDebug() << "Running N4D Call #" << i << " " << method;
 }
 
 /*
@@ -358,6 +475,7 @@ void MainWindow::CompleteGetStatus(QString result){
     if (n4dvalidator(result.toStdString(),"struct/{string/remote:{string/status_serversync:bool/true}}")){
         ui->statusBar->showMessage(tr("System is currently configured"),5000);
         ChangePannel(ui->page_group_edit);
+        InitGetCurrentQuotas();
         InitGetQuotaGroups();
     }else{
         ui->statusBar->showMessage(tr("System is currently unconfigured"),5000);
@@ -471,8 +589,31 @@ void MainWindow::StoreGolemGroups(QString returned){
             }
         }
     }
-    InitGetCurrentQuotas();
     InitCheckStatus();
+}
+
+/*
+ * CALLBACK TO CHECK THE RESULT WHEN ENABLE SYSTEM QUOTAS
+ * */
+void MainWindow::SystemIsEnabled(QString result){
+    if (n4dvalidator(result.toStdString(),"bool/true")){
+        ui->statusBar->showMessage(tr("System quotas are enabled now"),5000);
+        InitCheckStatus();
+    }else{
+        ui->statusBar->showMessage(tr("Something goes wrong"),5000);
+    }
+}
+
+/*
+ * CALLBACK TO CHECK THE RESULT WHEN DISABLE SYSTEM QUOTAS
+ * */
+void MainWindow::SystemIsDisabled(QString result){
+    if (n4dvalidator(result.toStdString(),"bool/true")){
+        ui->statusBar->showMessage(tr("System quotas are disabled now"),5000);
+        InitCheckStatus();
+    }else{
+        ui->statusBar->showMessage(tr("Something goes wrong"),5000);
+    }
 }
 
 /*
@@ -703,6 +844,38 @@ QMap<QString,QStringList> MainWindow::ApplyChangesToModel(QMap<QString,QStringLi
 }
 
 /*
+ * Unify distinct table models
+ * */
+bool MainWindow::MakeSameCols(QMap<QString,QStringList> &model,QMap<QString,QStringList> &changes){
+    if (!model.contains("__HEADER__") || ! changes.contains("__HEADER__")){
+        return false;
+    }
+    QStringList k_model = model.value("__HEADER__");
+    QStringList k_changes = changes.value("__HEADER__");
+
+    QStringList k_common;
+    QList<int> removeIndex;
+
+    for (auto const& k: k_model){
+        if (k_changes.contains(k)){
+            k_common << k;
+        }
+    }
+    for (int i = 0; i < k_changes.size(); i++){
+        if (! k_common.contains(k_changes.at(i))){
+            removeIndex.append(i);
+        }
+    }
+    std::sort(removeIndex.begin(),removeIndex.end(), std::greater<int>());
+    for(auto const& k: changes.keys()){
+        for (auto const& i: removeIndex){
+            changes[k].removeAt(i);
+        }
+    }
+    return true;
+}
+
+/*
  * METHOD TO CHECK IF ONE TABLE IS MODIFIED td1 (base table), td2 (table to check)
  * */
 bool MainWindow::isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2){
@@ -720,19 +893,68 @@ bool MainWindow::isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringL
  * */
 void MainWindow::showConfirmationTable(){
     enable_watch_table[ui->table_pending] = false;
-    QMap<QString,QStringList> contents;
+    changes_to_apply.clear();
+    QMap<QString,QMap<QString,QStringList>> contents;
+    QMap<QString,QMap<QString,QStringList>> oldcontents;
+
     QMap<QString,QStringList> contents_table;
+    QMap<QString,QMap<QString,QStringList>> diff;
+    QMap<QString,QMap<QString,QStringList>> old;
+    QString type_modification;
+
     for (auto const& table: tablewidgets){
         if (table == ui->table_pending){
             continue;
         }
+        if (table == ui->tableGroupEdition){
+            type_modification = "Group";
+        }else{
+            type_modification = "User";
+        }
+        // THE ONLY COLUMN THAT MUST APPEAR ON CONFIRMATION TABLE FROM MODEL!
+        // MakeSameColumns uses common columns to remove from second table uncommon columns
+        QMap<QString,QStringList> c;
+        c.insert("__HEADER__",QStringList({tr("Quota")}));
+        contents.insert(type_modification,c);
+        QMap<QString,QStringList> oc;
+        oc.insert("__HEADER__",QStringList({tr("Quota")}));
+        oldcontents.insert(type_modification,oc);
+
         contents_table = readViewTable(table);
-        QMap<QString,QStringList> diff = getTableDifferencesWithHeader(modelmap[table],&contents_table);
-        if (diff.size() > 1){
-            contents = ApplyChangesToModel(&contents,&diff);
+        diff.insert(type_modification,getTableDifferencesWithHeader(modelmap[table],&contents_table));
+        old.insert(type_modification,getTableDifferencesWithHeader(&contents_table,modelmap[table]));
+
+        if (diff[type_modification].size() > 1){
+            if (MakeSameCols(contents[type_modification],diff[type_modification])){
+                contents[type_modification] = ApplyChangesToModel(&contents[type_modification],&diff[type_modification]);
+                MakeSameCols(oldcontents[type_modification],old[type_modification]); // old Value uses "Quota" field
+                oldcontents[type_modification] = ApplyChangesToModel(&oldcontents[type_modification], &old[type_modification]);
+            }
         }
     }
-    PopulateTable(&contents,ui->table_pending);
+    QMap<QString,QStringList> show_final_contents;
+    // Mix old value into table & put type of modification
+    // structure to show changes (Need to be unique keys, if not unique when user & group have the same name will remove one of both on table)
+    show_final_contents["__HEADER__"] << tr("Quota");
+    show_final_contents["__HEADER__"] << tr("Previous value");
+
+    for (auto const& type: contents.keys()){
+        for (auto const& key: oldcontents[type].keys()){
+            if (key != "__HEADER__"){
+                QStringList row;
+                row << contents[type][key];
+                row << oldcontents[type][key];
+                show_final_contents.insert(type+" "+key,row);
+                QStringList store_list;
+                store_list.append(key);
+                store_list.append(type);
+                store_list.append(oldcontents[type][key]);
+                store_list.append(contents[type][key]);
+                changes_to_apply.append(store_list);
+            }
+        }
+    }
+    PopulateTable(&show_final_contents,ui->table_pending);
     makeReadOnlyTable(ui->table_pending);
 }
 
@@ -832,15 +1054,27 @@ void MainWindow::CellChanged(int row, int col, QTableWidget* table){
  * ENABLE/DISABLE APPLY BUTTON
  * */
 bool MainWindow::checkApplyButtons(){
-    if (pending_changes[ui->tableGroupEdition] || pending_changes[ui->tableUserEdition]){
+    bool any=false;
+    if (pending_changes[ui->tableGroupEdition]){
+        any=true;
+        ui->undoChangesButtonGroupTable->setEnabled(true);
+    }else{
+        ui->undoChangesButtonGroupTable->setDisabled(true);
+    }
+    if (pending_changes[ui->tableUserEdition]){
+        any=true;
+        ui->undoChangesUserTable->setEnabled(true);
+    }else{
+        ui->undoChangesUserTable->setDisabled(true);
+    }
+    if (any){
         ui->applyButtonGroupTable->setEnabled(true);
         ui->applyButtonUserTable->setEnabled(true);
-        return true;
     }else{
         ui->applyButtonGroupTable->setDisabled(true);
         ui->applyButtonUserTable->setDisabled(true);
-        return false;
     }
+    return any;
 }
 /*
  * OLD CODE
