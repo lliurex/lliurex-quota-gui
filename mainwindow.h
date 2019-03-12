@@ -70,6 +70,7 @@ private:
     void destroy_structures(bool init_threads);
 
     void InitN4DCall(QtN4DWorker::Methods method);
+    void InitN4DCall(QtN4DWorker::Methods method, QStringList params);
     void runWhenCompletedTask();
 
     void CheckValidation(QString result); //cb InitValidation
@@ -79,6 +80,8 @@ private:
     void StoreGolemGroups(QString result); //cb GetGolemGroups
     void SystemIsEnabled(QString result); //cb Enable
     void SystemIsDisabled(QString result); //cb Disable
+    void AddedUserQuota(QString result); //cb set userquota
+    void AddedGroupQuota(QString result); //cb set groupquota
 
     void PrepareTableMaps();
     void ChangePannel(QWidget* pannel);
@@ -96,6 +99,7 @@ private:
     void showConfirmationTable();
 
     QString normalizeUnits(QString value);
+    QString denormalizeUnits(QString value);
     bool isValidQuotaValue(QString value);
     void CellChanged(int row, int col, QTableWidget* table);
     bool checkApplyButtons();

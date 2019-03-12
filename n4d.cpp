@@ -330,11 +330,11 @@ string N4D::clean_extra_spaces(string s){
 }
 
 void N4D::process_params(xmlrpc_c::paramList &callParams, vector<string> params){
-    xmlrpc_c::value v;
+    //xmlrpc_c::value v;
     for (unsigned int i=0; i<params.size(); i++){
         string p = clean_extra_spaces(params[i]);
-        v = parse_param(p);
-        callParams.add(v);
+        //v = parse_param(p);
+        callParams.add(parse_param(p));
     }
 }
 
@@ -450,6 +450,10 @@ void QtN4DWorker::set_auth(QString user_param, QString pwd_param){
     pwd = pwd_param;
 }
 
+void QtN4DWorker::add_param(string param){
+    params.push_back(param);
+}
+
 void QtN4DWorker::validate_user(){
     string res = n4d->validate_user(user.toStdString(),pwd.toStdString());
 #ifdef RUNNING_THREADS
@@ -532,6 +536,30 @@ void QtN4DWorker::disable_system(){
     qDebug() << "Emiting finishedThread"  << serial;
 #endif
     emit finished_thread(serial);
+}
+
+void QtN4DWorker::set_userquota(){
+    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","set_userquota",params,false);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting call completed " << serial;
+#endif
+    emit n4d_call_completed(Methods::SET_USER_QUOTA,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+    qDebug() << "Emiting finishedThread"  << serial;
+#endif
+    emit finished_thread(serial);
+}
+
+void QtN4DWorker::set_groupquota(){
+   string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","set_groupquota",params,false);
+#ifdef RUNNING_THREADS
+   qDebug() << "Emiting call completed " << serial;
+#endif
+   emit n4d_call_completed(Methods::SET_GROUP_QUOTA,QString(res.data()),serial);
+#ifdef RUNNING_THREADS
+   qDebug() << "Emiting finishedThread"  << serial;
+#endif
+   emit finished_thread(serial);
 }
 
 string n4dresult2json(string result){

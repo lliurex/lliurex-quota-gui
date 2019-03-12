@@ -134,6 +134,12 @@ void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned, in
         case QtN4DWorker::Methods::DISABLE_SYSTEM:
             SystemIsDisabled(returned);
             break;
+        case QtN4DWorker::Methods::SET_GROUP_QUOTA:
+            AddedGroupQuota(returned);
+            break;
+        case QtN4DWorker::Methods::SET_USER_QUOTA:
+            AddedUserQuota(returned);
+            break;
     };
     completedTasks[from] = true;
     runWhenCompletedTask();
@@ -309,7 +315,7 @@ void MainWindow::Disable(){
 }
 
 /*
- *
+ * SLOT TO SEND CHANGES TO N4D
  * */
 void MainWindow::PendingApply(){
     qDebug() << "Applying changes:";
@@ -317,7 +323,20 @@ void MainWindow::PendingApply(){
         // List of changes contains tuples (QStringList) whose items are:
         // QStringList(name, user/group, quotaoldvalue, quotavalue)
         qDebug() << "I will modify " << sl.at(1) << " " << sl.at(0) << " from " << sl.at(2) << " to " << sl.at(3);
+        QStringList params;
+        params << "string/" + sl.at(0);
+        params << "string/" + denormalizeUnits(sl.at(3));
+        params << "string/0";
+        if (sl.at(1).toLower() == "group"){
+            InitN4DCall(QtN4DWorker::Methods::SET_GROUP_QUOTA,params);
+        }
+        if (sl.at(1).toLower() == "user"){
+            InitN4DCall(QtN4DWorker::Methods::SET_USER_QUOTA,params);
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    InitCheckStatus();
 }
 
 /*************************************
@@ -350,6 +369,10 @@ void MainWindow::removeThread(int i){
  * CONFIGURATION METHOD TO RUN THREADED N4D CALL
  * */
 void MainWindow::InitN4DCall(QtN4DWorker::Methods method){
+    InitN4DCall(method,QStringList());
+}
+
+void MainWindow::InitN4DCall(QtN4DWorker::Methods method, QStringList params){
     int i=0;
     QList serials = local_thread.keys();
     for (i=0; i<100; i++){
@@ -360,6 +383,11 @@ void MainWindow::InitN4DCall(QtN4DWorker::Methods method){
     local_thread.insert(i,new QThread);
     QtN4DWorker* worker = new QtN4DWorker(i);
     worker->set_auth(n4duser,n4dpwd);
+    if (!params.empty()){
+        for(auto const& p: params){
+            worker->add_param(p.toStdString());
+        }
+    }
     worker->moveToThread(local_thread.value(i));
 
     switch(method){
@@ -383,6 +411,12 @@ void MainWindow::InitN4DCall(QtN4DWorker::Methods method){
             break;
         case QtN4DWorker::Methods::DISABLE_SYSTEM:
             connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(disable_system()));
+            break;
+        case QtN4DWorker::Methods::SET_GROUP_QUOTA:
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(set_groupquota()));
+            break;
+        case QtN4DWorker::Methods::SET_USER_QUOTA:
+            connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(set_userquota()));
             break;
     };
 #ifdef RUNNING_THREADS
@@ -617,6 +651,26 @@ void MainWindow::SystemIsDisabled(QString result){
 }
 
 /*
+ * CALLBACK FROM USER QUOTA MODIFICATION
+ * */
+void MainWindow::AddedUserQuota(QString result){
+    if (result != "bool/true"){
+        ui->statusBar->showMessage("Failed to set user quota, "+result,10000);
+    }
+    //qDebug() << "Added user quota with result " << result;
+}
+
+/*
+ * CALLBACK FROM GROUP QUOTA MODIFICATION
+ * */
+void MainWindow::AddedGroupQuota(QString result){
+    if (result != "bool/true"){
+        ui->statusBar->showMessage("Failed to set group quota, "+result,10000);
+    }
+    //qDebug() << "Added group quota with result " << result;
+}
+
+/*
  * GENERIC METHOD FOR TABLE INITIALIZATION
  * */
 void MainWindow::InitializeTable(QTableWidget* item){
@@ -641,7 +695,7 @@ void MainWindow::makeReadOnlyTable(QTableWidget* table){
 }
 
 /*
- *
+ * METHOD TO WRITE CONTENT INTO TABLES
  * */
 void MainWindow::PopulateTableWithFilters(QTableWidget* table, QStringList showfilter, QStringList filter, QLineEdit* txtfilter, bool overwrite=false){
     QStringList filter_remove;
@@ -956,6 +1010,47 @@ void MainWindow::showConfirmationTable(){
     }
     PopulateTable(&show_final_contents,ui->table_pending);
     makeReadOnlyTable(ui->table_pending);
+}
+
+/*
+ * Change units to integer values when send to n4d system
+ * */
+QString MainWindow::denormalizeUnits(QString value){
+    QString out;
+    QRegularExpression number_with_unit("^(\\d+[.]?\\d*)[ ]*([gGmM])$");
+    QRegularExpression number("^(\\d+[.]?\\d*)$");
+    QRegularExpressionMatch match;
+
+    match = number_with_unit.match(value);
+    if (match.hasMatch()){
+        QString numeric_value = match.captured(1);
+        QString unit_value = match.captured(2);
+        if (unit_value.toUpper() == "G"){ // "G" as unit
+            if (numeric_value.contains(".")){
+                numeric_value = QString::number((numeric_value.toFloat() * 1024) + 0.5,10,0);
+                out = numeric_value + "m";
+            }else{
+                out = QString::number(numeric_value.toFloat() * 1024,10,0) + "m";
+            }
+        }else{ // "M" as unit
+            if (numeric_value.contains(".")){
+                numeric_value = QString::number(numeric_value.toFloat() + 0.5,10,0);
+            }else{
+                numeric_value = QString::number(numeric_value.toInt(),10,0);
+                out = numeric_value + "m";
+            }
+        }
+    }else{
+        match = number.match(value);
+        if (match.hasMatch()){
+            QString numeric_value = match.captured(1);
+            numeric_value = QString::number(numeric_value.toFloat(),10,0);
+            out = numeric_value + "k";
+        }else{
+            out = "0";
+        }
+    }
+    return out;
 }
 
 /*
