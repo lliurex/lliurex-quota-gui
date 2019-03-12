@@ -416,14 +416,24 @@ string N4D::make_call(string n4dHost="", string authUser="", string authPwd="", 
     }
     xmlrpc_c::carriageParm_curl0 myCarriageParm(n4dHost);
 
-    myRpcP->call(&myClient,&myCarriageParm);
+    string ret;
+    try{
+        myRpcP->call(&myClient,&myCarriageParm);
 
-    xmlrpc_c::value returned = myRpcP->getResult();
+        xmlrpc_c::value returned = myRpcP->getResult();
 
-    // Example return if a simple call is used
-    // string const res(xmlrpc_c::value_array(myRpcP->getResult()));
 
-    string ret = toString(returned,true);
+        // Example return if a simple call is used
+        // string const res(xmlrpc_c::value_array(myRpcP->getResult()));
+
+        ret = toString(returned,true);
+    } catch (exception const& e) {
+        cerr << "Client threw error: " << e.what() << endl;
+        ret = e.what();
+    } catch (...) {
+        cerr << "Client threw unexpected error." << endl;
+        ret = "Client threw unexpected error.";
+    }
     return ret;
 
     // Example simple call with two params

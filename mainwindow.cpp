@@ -496,7 +496,7 @@ void MainWindow::CheckValidation(QString result){
         ui->statusBar->showMessage(tr("Validation successful"),5000);
         InitGetGolemGroups();
     }else{
-        ui->statusBar->showMessage(tr("Validation failed"),5000);
+        ui->statusBar->showMessage(tr("Validation failed: ")+result,5000);
     }
     ui->txt_usu->setText("");
     ui->txt_pwd->setText("");
@@ -513,7 +513,7 @@ void MainWindow::CompleteGetStatus(QString result){
         InitGetCurrentQuotas();
         InitGetQuotaGroups();
     }else{
-        ui->statusBar->showMessage(tr("System is currently unconfigured"),5000);
+        ui->statusBar->showMessage(tr("System is currently unconfigured: ")+result,5000);
         ChangePannel(ui->page_need_configuration);
     }
 }
@@ -523,7 +523,9 @@ void MainWindow::CompleteGetStatus(QString result){
  * */
 void MainWindow::CompleteGetConfigure(QString result){
     QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
-    if (res.isObject()){
+    if (!res.isObject()){
+        ui->statusBar->showMessage(tr("Something goes wrong: ")+result,5000);
+    }else{
         QJsonObject obj = res.object();
         QMap result = obj.toVariantMap();
         QMap<QString,QStringList>* map;
@@ -577,7 +579,9 @@ void MainWindow::CompleteGetConfigure(QString result){
  * */
 void MainWindow::CompleteGetData(QString result){
     QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
-    if (res.isObject()){
+    if (!res.isObject()){
+        ui->statusBar->showMessage(tr("Something goes wrong: ")+result,5000);
+    }else{
         QJsonObject obj = res.object();
         QMap result = obj.toVariantMap();
         QMap<QString,QStringList>* map;
@@ -615,7 +619,9 @@ void MainWindow::StoreGolemGroups(QString returned){
     golem_groups.clear();
     string json = n4dresult2json(returned.toStdString());
     QJsonDocument res = QJsonDocument::fromJson(QString(json.data()).toUtf8());
-    if (res.isArray()){
+    if (!res.isArray()){
+        ui->statusBar->showMessage(tr("Something goes wrong: ")+returned,5000);
+    }else{
         QJsonArray arr = res.array();
         for (auto e: arr){
             QJsonObject o = e.toObject();
@@ -623,8 +629,8 @@ void MainWindow::StoreGolemGroups(QString returned){
                 golem_groups << o["cn"].toArray().at(0).toString();
             }
         }
+        InitCheckStatus();
     }
-    InitCheckStatus();
 }
 
 /*
@@ -656,7 +662,7 @@ void MainWindow::SystemIsDisabled(QString result){
  * */
 void MainWindow::AddedUserQuota(QString result){
     if (result != "bool/true"){
-        ui->statusBar->showMessage("Failed to set user quota, "+result,10000);
+        ui->statusBar->showMessage(tr("Failed to set user quota")+", "+result,10000);
     }
     //qDebug() << "Added user quota with result " << result;
 }
@@ -666,7 +672,7 @@ void MainWindow::AddedUserQuota(QString result){
  * */
 void MainWindow::AddedGroupQuota(QString result){
     if (result != "bool/true"){
-        ui->statusBar->showMessage("Failed to set group quota, "+result,10000);
+        ui->statusBar->showMessage(tr("Failed to set group quota")+", "+result,10000);
     }
     //qDebug() << "Added group quota with result " << result;
 }
