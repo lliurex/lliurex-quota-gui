@@ -320,6 +320,7 @@ void MainWindow::Disable(){
  * */
 void MainWindow::PendingApply(){
     qDebug() << "Applying changes:";
+    ui->btn_pending_apply->setDisabled(true);
     for (auto sl: changes_to_apply){
         // List of changes contains tuples (QStringList) whose items are:
         // QStringList(name, user/group, quotaoldvalue, quotavalue)
@@ -337,6 +338,7 @@ void MainWindow::PendingApply(){
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::this_thread::sleep_for(std::chrono::seconds(3));
+    ui->btn_pending_apply->setEnabled(true);
     InitCheckStatus();
 }
 
@@ -1032,16 +1034,20 @@ QString MainWindow::denormalizeUnits(QString value){
     if (match.hasMatch()){
         QString numeric_value = match.captured(1);
         QString unit_value = match.captured(2);
+        if (unit_value == "0.0" || unit_value == "0"){
+            out = "0";
+            return out;
+        }
         if (unit_value.toUpper() == "G"){ // "G" as unit
             if (numeric_value.contains(".")){
-                numeric_value = QString::number((numeric_value.toFloat() * 1024) + 0.5,10,0);
+                numeric_value = QString::number((numeric_value.toFloat() * 1024),10,0);
                 out = numeric_value + "m";
             }else{
                 out = QString::number(numeric_value.toFloat() * 1024,10,0) + "m";
             }
         }else{ // "M" as unit
             if (numeric_value.contains(".")){
-                numeric_value = QString::number(numeric_value.toFloat() + 0.5,10,0);
+                numeric_value = QString::number(numeric_value.toFloat(),10,0);
             }else{
                 numeric_value = QString::number(numeric_value.toInt(),10,0);
                 out = numeric_value + "m";
