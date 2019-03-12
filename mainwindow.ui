@@ -156,7 +156,7 @@
           <item row="0" column="1">
            <widget class="QLineEdit" name="txt_usu">
             <property name="text">
-             <string>netadmin</string>
+             <string></string>
             </property>
             <property name="clearButtonEnabled">
              <bool>true</bool>
@@ -173,7 +173,7 @@
           <item row="1" column="1">
            <widget class="QLineEdit" name="txt_pwd">
             <property name="text">
-             <string>lliurex</string>
+             <string></string>
             </property>
             <property name="echoMode">
              <enum>QLineEdit::Password</enum>
