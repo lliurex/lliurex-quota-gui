@@ -91,7 +91,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <property name="currentIndex">
-       <number>5</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page_login">
        <property name="sizePolicy">
@@ -156,7 +156,7 @@
           <item row="0" column="1">
            <widget class="QLineEdit" name="txt_usu">
             <property name="text">
-             <string></string>
+             <string/>
             </property>
             <property name="clearButtonEnabled">
              <bool>true</bool>
@@ -173,7 +173,7 @@
           <item row="1" column="1">
            <widget class="QLineEdit" name="txt_pwd">
             <property name="text">
-             <string></string>
+             <string/>
             </property>
             <property name="echoMode">
              <enum>QLineEdit::Password</enum>
@@ -595,6 +595,7 @@
    <addaction name="actionDisable"/>
    <addaction name="actionQuotaEditor"/>
    <addaction name="actionGroupEditor"/>
+   <addaction name="actionRefresh"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionEnable">
@@ -646,6 +647,18 @@
    </property>
    <property name="toolTip">
     <string>Switch to group editor mode</string>
+   </property>
+  </action>
+  <action name="actionRefresh">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/refresh.png</normaloff>:/refresh.png</iconset>
+   </property>
+   <property name="text">
+    <string>Refresh</string>
+   </property>
+   <property name="toolTip">
+    <string>Refresh views</string>
    </property>
   </action>
  </widget>
@@ -942,6 +955,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionRefresh</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>InitCheckStatus()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>CellChangedGroupTable(int,int)</slot>
@@ -958,5 +987,6 @@
   <slot>Enable()</slot>
   <slot>Disable()</slot>
   <slot>PendingApply()</slot>
+  <slot>InitCheckStatus()</slot>
  </slots>
 </ui>

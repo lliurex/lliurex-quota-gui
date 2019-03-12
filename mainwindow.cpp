@@ -195,6 +195,7 @@ void MainWindow::InitCheckStatus(){
     golem_groups = golem;
     n4duser = u;
     n4dpwd = p;
+    ui->statusBar->showMessage(tr("Refreshing information"),3000);
     InitN4DCall(QtN4DWorker::Methods::GET_STATUS);
 }
 
@@ -505,7 +506,7 @@ void MainWindow::CheckValidation(QString result){
  * CALLBACK FROM CHECK SYSTEM STATUS
  * */
 void MainWindow::CompleteGetStatus(QString result){
-    ui->statusBar->showMessage(tr("Completing get status"),5000);
+    ui->statusBar->showMessage(tr("Refreshed information"),3000);
     if (n4dvalidator(result.toStdString(),"struct/{string/remote:{string/status_serversync:bool/true}}")){
         ui->statusBar->showMessage(tr("System is currently configured"),5000);
         ChangePannel(ui->page_group_edit);
