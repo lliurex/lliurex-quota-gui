@@ -319,12 +319,16 @@ void MainWindow::Disable(){
  * SLOT TO SEND CHANGES TO N4D
  * */
 void MainWindow::PendingApply(){
-    qDebug() << "Applying changes:";
+    //qDebug() << "Applying changes:";
     ui->btn_pending_apply->setDisabled(true);
-    for (auto sl: changes_to_apply){
+    if (! changes_to_apply.empty() ){
+        QStringList sl = changes_to_apply.takeFirst();
         // List of changes contains tuples (QStringList) whose items are:
         // QStringList(name, user/group, quotaoldvalue, quotavalue)
-        qDebug() << "I will modify " << sl.at(1) << " " << sl.at(0) << " from " << sl.at(2) << " to " << sl.at(3);
+        QString msg;
+        msg = QString("I will modify: " + sl.at(1) + " " + sl.at(0) + " from " + sl.at(2) + " to " + sl.at(3));
+        //qDebug() << msg;
+        ui->statusBar->showMessage(msg,5000);
         QStringList params;
         params << "string/" + sl.at(0);
         params << "string/" + denormalizeUnits(sl.at(3));
@@ -335,11 +339,15 @@ void MainWindow::PendingApply(){
         if (sl.at(1).toLower() == "user"){
             InitN4DCall(QtN4DWorker::Methods::SET_USER_QUOTA,params);
         }
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        //std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (changes_to_apply.empty()){
+            // sleep 5 seconds to sync changes before update current quotas
+            ui->statusBar->showMessage(tr("Wait 5 seconds while syncing changes..."),5000);
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+            ui->btn_pending_apply->setEnabled(true);
+            InitCheckStatus();
+        }
     }
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    ui->btn_pending_apply->setEnabled(true);
-    InitCheckStatus();
 }
 
 /*************************************
@@ -477,6 +485,7 @@ void MainWindow::ChangePannel(QWidget* pannel){
     }
     if (pannel == ui->page_write_changes){
         showConfirmationTable();
+        ui->btn_pending_apply->setEnabled(true);
     }
 
     // Page history
@@ -498,7 +507,7 @@ void MainWindow::CheckValidation(QString result){
         ui->statusBar->showMessage(tr("Validation successful"),5000);
         InitGetGolemGroups();
     }else{
-        ui->statusBar->showMessage(tr("Validation failed: ")+result,5000);
+        ui->statusBar->showMessage(tr("Validation failed: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
     }
     ui->txt_usu->setText("");
     ui->txt_pwd->setText("");
@@ -515,7 +524,7 @@ void MainWindow::CompleteGetStatus(QString result){
         InitGetCurrentQuotas();
         InitGetQuotaGroups();
     }else{
-        ui->statusBar->showMessage(tr("System is currently unconfigured: ")+result,5000);
+        ui->statusBar->showMessage(tr("System is currently unconfigured: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
         ChangePannel(ui->page_need_configuration);
     }
 }
@@ -526,7 +535,7 @@ void MainWindow::CompleteGetStatus(QString result){
 void MainWindow::CompleteGetConfigure(QString result){
     QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
     if (!res.isObject()){
-        ui->statusBar->showMessage(tr("Something goes wrong: ")+result,5000);
+        ui->statusBar->showMessage(tr("Something goes wrong: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
     }else{
         QJsonObject obj = res.object();
         QMap result = obj.toVariantMap();
@@ -582,7 +591,7 @@ void MainWindow::CompleteGetConfigure(QString result){
 void MainWindow::CompleteGetData(QString result){
     QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
     if (!res.isObject()){
-        ui->statusBar->showMessage(tr("Something goes wrong: ")+result,5000);
+        ui->statusBar->showMessage(tr("Something goes wrong: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
     }else{
         QJsonObject obj = res.object();
         QMap result = obj.toVariantMap();
@@ -622,7 +631,7 @@ void MainWindow::StoreGolemGroups(QString returned){
     string json = n4dresult2json(returned.toStdString());
     QJsonDocument res = QJsonDocument::fromJson(QString(json.data()).toUtf8());
     if (!res.isArray()){
-        ui->statusBar->showMessage(tr("Something goes wrong: ")+returned,5000);
+        ui->statusBar->showMessage(tr("Something goes wrong: ")+QString::fromStdString(n4dresult2json(returned.toStdString())),5000);
     }else{
         QJsonArray arr = res.array();
         for (auto e: arr){
@@ -664,7 +673,10 @@ void MainWindow::SystemIsDisabled(QString result){
  * */
 void MainWindow::AddedUserQuota(QString result){
     if (result != "bool/true"){
-        ui->statusBar->showMessage(tr("Failed to set user quota")+", "+result,10000);
+        ui->statusBar->showMessage(tr("Failed to set user quota")+", "+QString::fromStdString(n4dresult2json(result.toStdString())),10000);
+    }
+    if (!changes_to_apply.empty()){
+        PendingApply();
     }
     //qDebug() << "Added user quota with result " << result;
 }
@@ -674,7 +686,10 @@ void MainWindow::AddedUserQuota(QString result){
  * */
 void MainWindow::AddedGroupQuota(QString result){
     if (result != "bool/true"){
-        ui->statusBar->showMessage(tr("Failed to set group quota")+", "+result,10000);
+        ui->statusBar->showMessage(tr("Failed to set group quota")+", "+QString::fromStdString(n4dresult2json(result.toStdString())),10000);
+    }
+    if (!changes_to_apply.empty()){
+        PendingApply();
     }
     //qDebug() << "Added group quota with result " << result;
 }
