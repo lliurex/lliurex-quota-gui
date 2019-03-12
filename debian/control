@@ -1,0 +1,14 @@
+Source: lliurex-quota-gui
+Section: utils
+Priority: optional
+Maintainer: M.Angel Juan <m.angel.juan@gmail.com>
+Build-Depends: debhelper (>= 10), libxmlrpc-c++8-dev
+Standards-Version: 4.1.2
+Homepage: http://lliurex.net
+Vcs-Git: https://github.com/lliurex/lliurex-quota-gui.git
+
+Package: lliurex-quota-gui
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, lliurex-quota, libxmlrpc-c++8v5
+Description: GUI interface to manage lliurex-quota
+ lliurex-quota-gui its capable to manage system quotas on lliurex systems through lliurex-quota native calls
