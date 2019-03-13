@@ -440,6 +440,7 @@ void MainWindow::InitN4DCall(QtN4DWorker::Methods method, QStringList params){
     connect(worker, SIGNAL(finished_thread(int)),this, SLOT(removeThread(int)));
     local_thread.value(i)->start();
     qDebug() << "Running N4D Call #" << i << " " << method;
+    //std::this_thread::sleep_for(std::chrono::milliseconds(300));
 }
 
 /*
@@ -521,7 +522,7 @@ void MainWindow::CompleteGetStatus(QString result){
     if (n4dvalidator(result.toStdString(),"struct/{string/remote:{string/status_serversync:bool/true}}")){
         ui->statusBar->showMessage(tr("System is currently configured"),5000);
         ChangePannel(ui->page_group_edit);
-        InitGetCurrentQuotas();
+        
         InitGetQuotaGroups();
     }else{
         ui->statusBar->showMessage(tr("System is currently unconfigured: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
@@ -582,6 +583,7 @@ void MainWindow::CompleteGetConfigure(QString result){
             tableitem.replace(position2,value);
             map->insert(users[i],tableitem);
         }
+        InitGetCurrentQuotas();
     }
 }
 
