@@ -513,7 +513,7 @@ void QtN4DWorker::get_configured_status(){
 }
 
 void QtN4DWorker::get_golem_groups(){
-    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"Golem","get_available_groups",false);
+    string res = n4d->make_call(user.toStdString(),pwd.toStdString(),"QuotaManager","get_groups",false);
 #ifdef RUNNING_THREADS
     qDebug() << "Emiting call completed " << serial;
 #endif
