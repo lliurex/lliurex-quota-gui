@@ -190,8 +190,15 @@ void MainWindow::InitCheckStatus(){
     QString u = n4duser;
     QString p = n4dpwd;
     QStringList golem = golem_groups;
+    QWidget* last;
+    if (last_page_used.front() == ui->page_edit_simple){
+        last = ui->page_edit_simple;
+    }else{
+        last = ui->page_group_edit;
+    }
     destroy_structures(false);
     init_structures(false);
+    last_page_used.push_front(last);
     golem_groups = golem;
     n4duser = u;
     n4dpwd = p;
@@ -521,7 +528,7 @@ void MainWindow::CompleteGetStatus(QString result){
     ui->statusBar->showMessage(tr("Refreshed information"),3000);
     if (n4dvalidator(result.toStdString(),"struct/{string/remote:{string/status_serversync:bool/true}}")){
         ui->statusBar->showMessage(tr("System is currently configured"),5000);
-        ChangePannel(ui->page_group_edit);
+        ChangePannel(last_page_used.front());
         
         InitGetQuotaGroups();
     }else{
