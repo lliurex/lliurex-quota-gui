@@ -31,6 +31,10 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="resources.qrc">
+    <normaloff>:/icon.png</normaloff>:/icon.png</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -91,7 +95,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="page_login">
        <property name="sizePolicy">
@@ -988,5 +992,6 @@
   <slot>Disable()</slot>
   <slot>PendingApply()</slot>
   <slot>InitCheckStatus()</slot>
+  <slot>update_animations(int)</slot>
  </slots>
 </ui>

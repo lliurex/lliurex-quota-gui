@@ -1,3 +1,11 @@
+lliurex-quota-gui (0.3.2) bionic; urgency=medium
+
+  * Add spinner when applying changes Add window icon
+  * Refresh button doesn't changes current tab view
+  * Changed n4d method (Golem:get_available_groups -> QuotaManager:get_groups). [Fix clients can't connect]
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Thu, 18 Apr 2019 18:53:27 +0200
+
 lliurex-quota-gui (0.3.1) bionic; urgency=medium
 
   * Add missing files
