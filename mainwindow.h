@@ -13,12 +13,24 @@
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <QTableWidget>
+#include <QPushButton>
+#include <QMovie>
 
 #include <algorithm>
+#include <functional>
 
 namespace Ui {
 class MainWindow;
 }
+
+struct spin_obj_data {
+    QPushButton* obj;
+    QString text;
+    QMovie* animation;
+    time_t start_time;
+    std::function<void (void)> cb;
+    int timeout;
+};
 
 class MainWindow : public QMainWindow
 {
@@ -49,8 +61,10 @@ public slots:
     void Disable();
     void removeThread(int i);
     void PendingApply();
-
+    void update_animations(int frame);
+    void EndApply();
 private:
+    void init_spin_wait(QPushButton* obj,int timeout,std::function<void (void)> f);
     Ui::MainWindow *ui;
 
     // System structures
@@ -65,6 +79,7 @@ private:
     QMap<QTableWidget*,QMap<QString,QStringList>*> modelmap;
     QMap<QTableWidget*,bool> pending_changes;
     QList<QStringList> changes_to_apply;
+    QList<spin_obj_data> spin_obj_data_list;
 
     void init_structures(bool init_threads);
     void destroy_structures(bool init_threads);

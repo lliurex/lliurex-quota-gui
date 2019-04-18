@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <QTableWidget>
+#include <time.h>
 
 #include <algorithm>
 #include <thread>
@@ -321,13 +322,35 @@ void MainWindow::Enable(){
 void MainWindow::Disable(){
     InitN4DCall(QtN4DWorker::Methods::DISABLE_SYSTEM);
 }
-
+/*
+ * Callback for animated icon
+ * */
+void MainWindow::update_animations(int frame){
+    time_t curtime;
+    for (int i=0; i<spin_obj_data_list.size(); i++){
+        spin_obj_data o = spin_obj_data_list.at(i);
+        time(&curtime);
+        if (o.timeout > difftime(curtime,o.start_time)){
+            o.obj->setIcon(QIcon(o.animation->currentPixmap()));
+        }else{
+            o.obj->setText(o.text);
+            o.obj->setIcon(QIcon());
+            disconnect(o.animation,SIGNAL(frameChanged(int)),this,SLOT(update_animations(int)));
+            disconnect(o.animation,SIGNAL(finished()),o.animation,SLOT(start()));
+            o.animation->deleteLater();
+            spin_obj_data_list.removeAt(i);
+            o.cb();
+        }
+    }
+}
 /*
  * SLOT TO SEND CHANGES TO N4D
  * */
+
 void MainWindow::PendingApply(){
     //qDebug() << "Applying changes:";
     ui->btn_pending_apply->setDisabled(true);
+    std::function<void (void)> f = std::bind(&MainWindow::EndApply,this);
     if (! changes_to_apply.empty() ){
         QStringList sl = changes_to_apply.takeFirst();
         // List of changes contains tuples (QStringList) whose items are:
@@ -350,13 +373,34 @@ void MainWindow::PendingApply(){
         if (changes_to_apply.empty()){
             // sleep 5 seconds to sync changes before update current quotas
             ui->statusBar->showMessage(tr("Wait 5 seconds while syncing changes..."),5000);
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-            ui->btn_pending_apply->setEnabled(true);
-            InitCheckStatus();
+            init_spin_wait(ui->btn_pending_apply,5,f);
         }
     }
 }
 
+void MainWindow::init_spin_wait(QPushButton* obj,int timeout,std::function<void (void)> cb){
+    spin_obj_data data;
+    data.obj = obj;
+    data.animation = new QMovie("://loader.gif");
+    data.text = obj->text();
+    data.timeout = timeout;
+    data.cb = cb;
+
+    data.obj->setText(QString(""));
+    data.obj->setIcon(QIcon(data.animation->currentPixmap()));
+    connect(data.animation,SIGNAL(frameChanged(int)),this,SLOT(update_animations(int)));
+    if (data.animation->loopCount() != -1){
+        connect(data.animation,SIGNAL(finished()),data.animation,SLOT(start()));
+    }
+    time(&data.start_time);
+    data.animation->start();
+    spin_obj_data_list.append(data);
+}
+
+void MainWindow::EndApply(){
+    ui->btn_pending_apply->setEnabled(true);
+    InitCheckStatus();
+}
 /*************************************
  *  END SLOTS
  ************************************/
