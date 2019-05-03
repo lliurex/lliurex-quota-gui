@@ -326,6 +326,7 @@ void MainWindow::Disable(){
  * Callback for animated icon
  * */
 void MainWindow::update_animations(int frame){
+    Q_UNUSED(frame);
     time_t curtime;
     for (int i=0; i<spin_obj_data_list.size(); i++){
         spin_obj_data o = spin_obj_data_list.at(i);
