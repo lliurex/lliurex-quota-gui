@@ -15,6 +15,7 @@
 #include <QTableWidget>
 #include <QPushButton>
 #include <QMovie>
+#include <QSystemTrayIcon>
 
 #include <algorithm>
 #include <functional>
@@ -40,7 +41,11 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+protected:
+    void closeEvent(QCloseEvent *event);
+
 public slots:
+    void EndApplication();
     void ProcessCallback(QtN4DWorker::Methods, QString returned, int serial);
     void InitValidation();
     void InitCheckStatus();
@@ -68,6 +73,7 @@ private:
     Ui::MainWindow *ui;
 
     // System structures
+    QSystemTrayIcon* tray;
     QMap<int,QThread*> local_thread;
     QString n4duser, n4dpwd;
     QMap<QtN4DWorker::Methods,bool> completedTasks;
@@ -81,6 +87,7 @@ private:
     QList<QStringList> changes_to_apply;
     QList<spin_obj_data> spin_obj_data_list;
 
+    void init_tray(QObject *parent);
     void init_structures(bool init_threads);
     void destroy_structures(bool init_threads);
 

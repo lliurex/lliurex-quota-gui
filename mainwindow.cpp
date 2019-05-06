@@ -12,6 +12,9 @@
 #include <QRegularExpression>
 #include <QTableWidget>
 #include <time.h>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QCloseEvent>
 
 #include <algorithm>
 #include <thread>
@@ -24,8 +27,36 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    init_tray(this);
     init_structures(true);
     ChangePannel(ui->page_login);
+}
+
+/*
+ * Initialize tray icon
+ * */
+void MainWindow::init_tray(QObject *parent){
+    if (QSystemTrayIcon::isSystemTrayAvailable()){
+        tray = new QSystemTrayIcon(QIcon(QPixmap("://icon.png")),parent);
+        const QString msg = QString("Lliurex-quota menu");
+        QMenu *menu = new QMenu(msg);
+        tray->setContextMenu(menu);
+        tray->show();
+    }
+}
+
+
+void MainWindow::closeEvent(QCloseEvent *event){
+    EndApplication();
+}
+
+/*
+ * End application slot doing ending actions
+ * */
+void MainWindow::EndApplication(){
+    tray->hide();
+    delete(tray->contextMenu());
+    delete(tray);
 }
 
 /*
