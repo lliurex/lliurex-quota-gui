@@ -12,6 +12,9 @@
 #include <QRegularExpression>
 #include <QTableWidget>
 #include <time.h>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QCloseEvent>
 
 #include <algorithm>
 #include <thread>
@@ -24,8 +27,37 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    init_tray(this);
     init_structures(true);
     ChangePannel(ui->page_login);
+}
+
+/*
+ * Initialize tray icon
+ * */
+void MainWindow::init_tray(QObject *parent){
+    if (QSystemTrayIcon::isSystemTrayAvailable()){
+        tray = new QSystemTrayIcon(QIcon(QPixmap("://icon.png")),parent);
+        const QString msg = QString("Lliurex-quota menu");
+        QMenu *menu = new QMenu(msg);
+        tray->setContextMenu(menu);
+        tray->show();
+    }
+}
+
+
+void MainWindow::closeEvent(QCloseEvent *event){
+    Q_UNUSED(event);
+    EndApplication();
+}
+
+/*
+ * End application slot doing ending actions
+ * */
+void MainWindow::EndApplication(){
+    tray->hide();
+    delete(tray->contextMenu());
+    delete(tray);
 }
 
 /*
@@ -39,6 +71,7 @@ void MainWindow::init_structures(bool init_threads=true){
     n4dpwd = "";
     completedTasks.clear();
     changes_to_apply.clear();
+    qDebug()<< "--> initializing last page";
     last_page_used.clear();
     tablewidgets.clear();
     golem_groups.clear();
@@ -192,10 +225,13 @@ void MainWindow::InitCheckStatus(){
     QString p = n4dpwd;
     QStringList golem = golem_groups;
     QWidget* last;
-    if (last_page_used.front() == ui->page_edit_simple){
-        last = ui->page_edit_simple;
-    }else{
+    if (last_page_used.front() == ui->page_login){
         last = ui->page_group_edit;
+    }else{
+        if (last_page_used.front() == ui->page_write_changes){
+            last_page_used.pop_front();
+        }
+        last = last_page_used.front();
     }
     destroy_structures(false);
     init_structures(false);
@@ -499,7 +535,7 @@ void MainWindow::InitN4DCall(QtN4DWorker::Methods method, QStringList params){
  * Method to customize pannel styles and related widgets globally
  * */
 void MainWindow::ChangePannel(QWidget* pannel){
-    static int MAX_HISTORY_ELEMENTS = 10;
+    static int MAX_HISTORY_ELEMENTS = 3;
 
     if (pannel == ui->page_login){
         ui->statusBar->showMessage(tr("Ready"),2000);
@@ -542,11 +578,16 @@ void MainWindow::ChangePannel(QWidget* pannel){
     }
 
     // Page history
-    last_page_used.push_front(pannel);
+    if (last_page_used.size() == 0){
+        last_page_used.push_front(pannel);
+    }else{
+        if (last_page_used.front() != pannel){
+            last_page_used.push_front(pannel);
+        }
+    }
     if (last_page_used.size() > MAX_HISTORY_ELEMENTS){
         last_page_used.pop_back();
     }
-
     ui->stackedWidget->setCurrentWidget(pannel);
 }
 
@@ -574,7 +615,6 @@ void MainWindow::CompleteGetStatus(QString result){
     if (n4dvalidator(result.toStdString(),"struct/{string/remote:{string/status_serversync:bool/true}}")){
         ui->statusBar->showMessage(tr("System is currently configured"),5000);
         ChangePannel(last_page_used.front());
-        
         InitGetQuotaGroups();
     }else{
         ui->statusBar->showMessage(tr("System is currently unconfigured: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
@@ -588,7 +628,8 @@ void MainWindow::CompleteGetStatus(QString result){
 void MainWindow::CompleteGetConfigure(QString result){
     QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
     if (!res.isObject()){
-        ui->statusBar->showMessage(tr("Something goes wrong: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
+        //ui->statusBar->showMessage(tr("Something goes wrong: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
+        ui->statusBar->showMessage(tr("Something goes wrong: "),5000);
     }else{
         QJsonObject obj = res.object();
         QMap result = obj.toVariantMap();
@@ -645,7 +686,8 @@ void MainWindow::CompleteGetConfigure(QString result){
 void MainWindow::CompleteGetData(QString result){
     QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
     if (!res.isObject()){
-        ui->statusBar->showMessage(tr("Something goes wrong: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
+        //ui->statusBar->showMessage(tr("Something goes wrong: ")+QString::fromStdString(n4dresult2json(result.toStdString())),5000);
+        ui->statusBar->showMessage(tr("Something goes wrong: "),5000);
     }else{
         QJsonObject obj = res.object();
         QMap result = obj.toVariantMap();

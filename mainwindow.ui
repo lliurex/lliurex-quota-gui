@@ -975,6 +975,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>MainWindow</sender>
+   <signal>destroyed()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>EndApplication()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>CellChangedGroupTable(int,int)</slot>
@@ -993,5 +1009,6 @@
   <slot>PendingApply()</slot>
   <slot>InitCheckStatus()</slot>
   <slot>update_animations(int)</slot>
+  <slot>EndApplication()</slot>
  </slots>
 </ui>
