@@ -68,6 +68,8 @@ public slots:
     void PendingApply();
     void update_animations(int frame);
     void EndApply();
+    void ShowAPP();
+    void HideAPP();
 private:
     void init_spin_wait(QPushButton* obj,int timeout,std::function<void (void)> f);
     Ui::MainWindow *ui;

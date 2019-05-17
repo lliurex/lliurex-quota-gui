@@ -42,6 +42,7 @@ void MainWindow::init_tray(QObject *parent){
         QMenu *menu = new QMenu(msg);
         tray->setContextMenu(menu);
         tray->show();
+        ShowAPP();
     }
 }
 
@@ -58,6 +59,7 @@ void MainWindow::EndApplication(){
     tray->hide();
     delete(tray->contextMenu());
     delete(tray);
+    exit(0);
 }
 
 /*
@@ -71,7 +73,6 @@ void MainWindow::init_structures(bool init_threads=true){
     n4dpwd = "";
     completedTasks.clear();
     changes_to_apply.clear();
-    qDebug()<< "--> initializing last page";
     last_page_used.clear();
     tablewidgets.clear();
     golem_groups.clear();
@@ -437,6 +438,22 @@ void MainWindow::init_spin_wait(QPushButton* obj,int timeout,std::function<void 
 void MainWindow::EndApply(){
     ui->btn_pending_apply->setEnabled(true);
     InitCheckStatus();
+}
+
+void MainWindow::ShowAPP(){
+    this->show();
+    QMenu *m = this->tray->contextMenu();
+    m->clear();
+    m->addAction("Hide Application",this,SLOT(HideAPP()));
+    m->addAction("Exit Application",this,SLOT(EndApplication()));
+}
+
+void MainWindow::HideAPP(){
+    this->hide();
+    QMenu *m = this->tray->contextMenu();
+    m->clear();
+    m->addAction("Show Application",this,SLOT(ShowAPP()));
+    m->addAction("Exit Application",this,SLOT(EndApplication()));
 }
 /*************************************
  *  END SLOTS
