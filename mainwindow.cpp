@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent) :
  * */
 void MainWindow::init_tray(QObject *parent){
     if (QSystemTrayIcon::isSystemTrayAvailable()){
-        tray = new QSystemTrayIcon(QIcon(QPixmap("://icon.png")),parent);
+        tray = new QSystemTrayIcon(QIcon(QPixmap("://rsrc/lliurex-quota.png")),parent);
         const QString msg = QString("Lliurex-quota menu");
         QMenu *menu = new QMenu(msg);
         tray->setContextMenu(menu);
@@ -556,7 +556,7 @@ void MainWindow::ChangePannel(QWidget* pannel){
 
     if (pannel == ui->page_login){
         ui->statusBar->showMessage(tr("Ready"),2000);
-        ui->logo->setPixmap(QPixmap("://banner.png"));
+        ui->logo->setPixmap(QPixmap("://rsrc/banner.png"));
         ui->logo->setAlignment(Qt::AlignCenter);
         ui->actionGroupEditor->setDisabled(true);
         ui->actionQuotaEditor->setDisabled(true);
