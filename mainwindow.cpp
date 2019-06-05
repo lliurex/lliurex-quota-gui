@@ -19,7 +19,6 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
 #include "n4d.h"
 
 #include <QDebug>
@@ -30,7 +29,6 @@
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <QTableWidget>
-#include <time.h>
 #include <QSystemTrayIcon>
 #include <QMenu>
 #include <QCloseEvent>
@@ -38,6 +36,8 @@
 #include <algorithm>
 #include <thread>
 #include <chrono>
+#include <time.h>
+
 /*
  * Constructors
  * */

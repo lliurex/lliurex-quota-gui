@@ -20,8 +20,6 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-
 #include "n4d.h"
 
 #include <QDebug>
@@ -35,6 +33,7 @@
 #include <QPushButton>
 #include <QMovie>
 #include <QSystemTrayIcon>
+#include <QMainWindow>
 
 #include <algorithm>
 #include <functional>

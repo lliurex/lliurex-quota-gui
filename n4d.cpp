@@ -21,19 +21,21 @@
 * g++ -Wunused -std=c++1z -o n4d_cli n4d_cli.cpp -lxmlrpc++ -lxmlrpc -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_util -lxmlrpc_client++
 */
 
+#include "n4d.h"
+
+#include <QDebug>
+#include <QString>
+
+#include <xmlrpc-c/girerr.hpp>
+#include <xmlrpc-c/base.hpp>
+#include <xmlrpc-c/client_simple.hpp>
+
 #include <cstdlib>
 #include <string>
 #include <algorithm>
 #include <iostream>
 #include <ctime>
-#include <xmlrpc-c/girerr.hpp>
-#include <xmlrpc-c/base.hpp>
-#include <xmlrpc-c/client_simple.hpp>
-#include "n4d.h"
 
-#include <QDebug>
-
-#include <QString>
 using namespace std;
 
 N4D::N4D(){
