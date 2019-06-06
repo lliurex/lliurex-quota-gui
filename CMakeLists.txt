@@ -20,5 +20,9 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets Core)
 # work arround for that
 set(XMLRPC_LIBRARIES xmlrpc_client++ xmlrpc_client xmlrpc++ xmlrpc xmlrpc_xmlparse xmlrpc_xmltok xmlrpc_util xmlrpc_packetsocket)
 
+add_subdirectory(rsrc)
+
 add_executable(${APP_NAME} main.cpp mainwindow.cpp n4d.cpp resources.qrc mainwindow.ui)
 target_link_libraries(${APP_NAME} Qt5::Widgets Qt5::Core ${XMLRPC_LIBRARIES})
+add_dependencies(${APP_NAME} RSRCS)
+
