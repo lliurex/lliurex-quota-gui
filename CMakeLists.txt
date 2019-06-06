@@ -22,6 +22,9 @@ set(XMLRPC_LIBRARIES xmlrpc_client++ xmlrpc_client xmlrpc++ xmlrpc xmlrpc_xmlpar
 
 add_subdirectory(rsrc)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 add_executable(${APP_NAME} main.cpp mainwindow.cpp n4d.cpp resources.qrc mainwindow.ui)
 target_link_libraries(${APP_NAME} Qt5::Widgets Qt5::Core ${XMLRPC_LIBRARIES})
 add_dependencies(${APP_NAME} RSRCS)
