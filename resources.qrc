@@ -2,6 +2,6 @@
     <qresource prefix="/">
         <file>rsrc/banner.png</file>
         <file>rsrc/lliurex-quota.png</file>
-        <file>loader.gif</file>
+        <file>rsrc/loader.gif</file>
     </qresource>
 </RCC>

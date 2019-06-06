@@ -44,19 +44,6 @@
        y2="296.54929"
        gradientUnits="userSpaceOnUse"
        gradientTransform="matrix(1.1999999,0,0,1.5999999,0,-178.19997)" />
-    <filter
-       inkscape:collect="always"
-       style="color-interpolation-filters:sRGB"
-       id="filter1215"
-       x="-0.012923077"
-       width="1.0258462"
-       y="-0.168"
-       height="1.336">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="0.92604169"
-         id="feGaussianBlur1217" />
-    </filter>
     <mask
        maskUnits="userSpaceOnUse"
        id="mask1251">
@@ -76,9 +63,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.979899"
-     inkscape:cx="378.32475"
-     inkscape:cy="-5.2790808"
+     inkscape:zoom="1.4"
+     inkscape:cx="339.42486"
+     inkscape:cy="26.553217"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -108,7 +95,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -154,15 +141,6 @@
        id="path1131"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc" />
-    <rect
-       style="opacity:1;vector-effect:none;fill:none;fill-opacity:1;stroke:#31363b;stroke-width:1.05833328;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal;filter:url(#filter1215)"
-       id="rect815-24"
-       width="171.97917"
-       height="13.229167"
-       x="-75.028275"
-       y="339.7113"
-       mask="url(#mask1251)"
-       transform="matrix(1.1999999,0,0,1.5999999,90.033926,-267.70473)" />
     <g
        aria-label="LliureX Quota"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:6.3755064px;line-height:1.25;font-family:Poppins;-inkscape-font-specification:'Poppins Bold';letter-spacing:0px;word-spacing:0px;fill:#7f8c8d;fill-opacity:1;stroke:none;stroke-width:0.15938766"
@@ -229,5 +207,12 @@
          id="path870"
          inkscape:connector-curvature="0" />
     </g>
+    <rect
+       style="opacity:1;vector-effect:none;fill:none;fill-opacity:1;stroke:#95a5a6;stroke-width:0.5542562;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal"
+       id="rect815-5"
+       width="206.375"
+       height="21.166666"
+       x="-1.6875001e-06"
+       y="275.83331" />
   </g>
 </svg>
