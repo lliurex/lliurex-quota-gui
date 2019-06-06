@@ -32,6 +32,8 @@
 #include <QSystemTrayIcon>
 #include <QMenu>
 #include <QCloseEvent>
+#include <QList>
+#include <QMap>
 
 #include <algorithm>
 #include <thread>
