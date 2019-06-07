@@ -29,3 +29,26 @@ add_executable(${APP_NAME} main.cpp mainwindow.cpp n4d.cpp resources.qrc mainwin
 target_link_libraries(${APP_NAME} Qt5::Widgets Qt5::Core ${XMLRPC_LIBRARIES})
 add_dependencies(${APP_NAME} RSRCS)
 
+#Install binary
+install(
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/${APP_NAME}
+    DESTINATION usr/bin/
+)
+
+#desktop
+install(
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/lliurex-quota.desktop
+    DESTINATION usr/share/applications/
+)
+
+#icon
+install(
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/rsrc/lliurex-quota.svg
+    DESTINATION usr/share/icons/hicolor/scalable/apps/
+)
+
+#translations
+install(
+    DIRECTORY translations
+    DESTINATION usr/share/lliurex-quota-gui/
+)
