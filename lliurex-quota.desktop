@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Lliurex Quota
+TryExec=/usr/bin/lliurex-quota-gui
+Comment=Configures disk quotas
+StartupNotify=true
+Exec=/usr/bin/lliurex-quota-gui
+Icon=lliurex-quota
+Terminal=false
+Type=Application
+Categories=System
