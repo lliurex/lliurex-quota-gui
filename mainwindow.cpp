@@ -1,6 +1,24 @@
+/*
+    lliurex quota gui
+    Copyright (C) 2019 M.Angel Juan <m.angel.juan@gmail.com>
+    Copyright (C) 2019  Enrique Medina Gremaldos <quiqueiii@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
 #include "n4d.h"
 
 #include <QDebug>
@@ -11,14 +29,17 @@
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <QTableWidget>
-#include <time.h>
 #include <QSystemTrayIcon>
 #include <QMenu>
 #include <QCloseEvent>
+#include <QList>
+#include <QMap>
 
 #include <algorithm>
 #include <thread>
 #include <chrono>
+#include <time.h>
+
 /*
  * Constructors
  * */
@@ -37,7 +58,7 @@ MainWindow::MainWindow(QWidget *parent) :
  * */
 void MainWindow::init_tray(QObject *parent){
     if (QSystemTrayIcon::isSystemTrayAvailable()){
-        tray = new QSystemTrayIcon(QIcon(QPixmap("://icon.png")),parent);
+        tray = new QSystemTrayIcon(QIcon(QPixmap("://rsrc/lliurex-quota.png")),parent);
         const QString msg = QString("Lliurex-quota menu");
         QMenu *menu = new QMenu(msg);
         tray->setContextMenu(menu);
@@ -556,7 +577,7 @@ void MainWindow::ChangePannel(QWidget* pannel){
 
     if (pannel == ui->page_login){
         ui->statusBar->showMessage(tr("Ready"),2000);
-        ui->logo->setPixmap(QPixmap("://banner.png"));
+        ui->logo->setPixmap(QPixmap("://rsrc/banner.png"));
         ui->logo->setAlignment(Qt::AlignCenter);
         ui->actionGroupEditor->setDisabled(true);
         ui->actionQuotaEditor->setDisabled(true);

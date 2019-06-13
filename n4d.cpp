@@ -1,20 +1,41 @@
 /*
+    lliurex quota gui
+    Copyright (C) 2019 M.Angel Juan <m.angel.juan@gmail.com>
+    Copyright (C) 2019  Enrique Medina Gremaldos <quiqueiii@gmail.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
 * g++ -Wunused -std=c++1z -o n4d_cli n4d_cli.cpp -lxmlrpc++ -lxmlrpc -lxmlrpc_xmlparse -lxmlrpc_xmltok -lxmlrpc_util -lxmlrpc_client++
 */
+
+#include "n4d.h"
+
+#include <QDebug>
+#include <QString>
+
+#include <xmlrpc-c/girerr.hpp>
+#include <xmlrpc-c/base.hpp>
+#include <xmlrpc-c/client_simple.hpp>
 
 #include <cstdlib>
 #include <string>
 #include <algorithm>
 #include <iostream>
 #include <ctime>
-#include <xmlrpc-c/girerr.hpp>
-#include <xmlrpc-c/base.hpp>
-#include <xmlrpc-c/client_simple.hpp>
-#include "n4d.h"
 
-#include <QDebug>
-
-#include <QString>
 using namespace std;
 
 N4D::N4D(){
