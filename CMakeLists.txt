@@ -31,24 +31,24 @@ add_dependencies(${APP_NAME} RSRCS)
 
 #Install binary
 install(
-    FILES ${CMAKE_CURRENT_SOURCE_DIR}/${APP_NAME}
-    DESTINATION usr/bin/
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${APP_NAME}
+    DESTINATION bin/
 )
 
 #desktop
 install(
     FILES ${CMAKE_CURRENT_SOURCE_DIR}/lliurex-quota.desktop
-    DESTINATION usr/share/applications/
+    DESTINATION share/applications/
 )
 
 #icon
 install(
     FILES ${CMAKE_CURRENT_SOURCE_DIR}/rsrc/lliurex-quota.svg
-    DESTINATION usr/share/icons/hicolor/scalable/apps/
+    DESTINATION share/icons/hicolor/scalable/apps/
 )
 
 #translations
 install(
     DIRECTORY translations
-    DESTINATION usr/share/lliurex-quota-gui/
+    DESTINATION share/lliurex-quota-gui/
 )
