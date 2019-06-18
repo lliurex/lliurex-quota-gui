@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.8) bionic; urgency=medium
+
+  * Add librsvg2-bin as build dependency
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Tue, 18 Jun 2019 14:29:24 +0200
+
 lliurex-quota-gui (0.3.7) bionic; urgency=medium
 
   * Add extra-cmake-modules as build dependency
