@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.6) bionic; urgency=medium
+
+  * Add cmake as build dependency
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Tue, 18 Jun 2019 13:59:28 +0200
+
 lliurex-quota-gui (0.3.5) bionic; urgency=medium
 
   * Fix loader gif path
