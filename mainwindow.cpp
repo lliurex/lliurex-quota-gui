@@ -440,7 +440,7 @@ void MainWindow::PendingApply(){
 void MainWindow::init_spin_wait(QPushButton* obj,int timeout,std::function<void (void)> cb){
     spin_obj_data data;
     data.obj = obj;
-    data.animation = new QMovie("://loader.gif");
+    data.animation = new QMovie("://rsrc/loader.gif");
     data.text = obj->text();
     data.timeout = timeout;
     data.cb = cb;
@@ -457,6 +457,7 @@ void MainWindow::init_spin_wait(QPushButton* obj,int timeout,std::function<void 
 }
 
 void MainWindow::EndApply(){
+    qDebug() << "Changes Applied";
     ui->btn_pending_apply->setEnabled(true);
     InitCheckStatus();
 }
