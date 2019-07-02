@@ -249,12 +249,14 @@ void MainWindow::InitCheckStatus(){
     QWidget* last;
     if (last_page_used.front() == ui->page_login){
         last = ui->page_group_edit;
-    }else{
-        if (last_page_used.front() == ui->page_write_changes){
+    }else if (last_page_used.front() == ui->page_need_configuration){
+	last = ui->page_group_edit;
+    }else if(last_page_used.front() == ui->page_write_changes){
             last_page_used.pop_front();
-        }
+    }else{
         last = last_page_used.front();
     }
+    
     destroy_structures(false);
     init_structures(false);
     last_page_used.push_front(last);

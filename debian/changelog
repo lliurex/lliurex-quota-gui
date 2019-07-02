@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.9) bionic; urgency=medium
+
+  * Fix frozen view when configuring first time
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Tue, 02 Jul 2019 12:57:08 +0200
+
 lliurex-quota-gui (0.3.8) bionic; urgency=medium
 
   * Add librsvg2-bin as build dependency
