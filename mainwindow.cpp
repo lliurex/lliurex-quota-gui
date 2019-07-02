@@ -253,6 +253,7 @@ void MainWindow::InitCheckStatus(){
 	last = ui->page_group_edit;
     }else if(last_page_used.front() == ui->page_write_changes){
             last_page_used.pop_front();
+	    last = last_page_used.front();
     }else{
         last = last_page_used.front();
     }
