@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.10) bionic; urgency=medium
+
+  * Fix return window when apply group quota
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Tue, 02 Jul 2019 14:25:34 +0200
+
 lliurex-quota-gui (0.3.9) bionic; urgency=medium
 
   * Fix frozen view when configuring first time
