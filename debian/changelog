@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.11) bionic; urgency=medium
+
+  * Fix desktop location
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Thu, 18 Jul 2019 15:02:15 +0200
+
 lliurex-quota-gui (0.3.10) bionic; urgency=medium
 
   * Fix return window when apply group quota
