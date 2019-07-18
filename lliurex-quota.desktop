@@ -8,4 +8,4 @@ Exec=/usr/bin/lliurex-quota-gui
 Icon=lliurex-quota
 Terminal=false
 Type=Application
-Categories=System
+Categories=LliureX-Administration;
