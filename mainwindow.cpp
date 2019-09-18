@@ -712,7 +712,7 @@ void MainWindow::CompleteGetConfigure(QString result){
                 tableitem = map->value(users[i]);
             }else{
                 for (int i=0; i<header_size2; i++){
-                    tableitem << "0K";
+                    tableitem << "0G";
                 }
             }
             tableitem.replace(position2,value);
@@ -745,13 +745,13 @@ void MainWindow::CompleteGetData(QString result){
         for (auto const& k: keys){
             QMap<QString,QVariant> user_data_quotas = result[k].toMap();
             QString spaceused = user_data_quotas.value("spaceused").toString();
-            QString hardlimit = user_data_quotas.value("spacehardlimit").toString();
+            QString hardlimit = normalizeUnits(user_data_quotas.value("spacehardlimit").toString(),false,true);
             QStringList tableitem;
             if (map->contains(k)){
                 tableitem = map->value(k);
             }else{
                 for (int i=0; i<header_size; i++){
-                    tableitem << "0K";
+                    tableitem << "0G";
                 }
             }
             tableitem.replace(position_spaceused,spaceused);
@@ -1189,6 +1189,7 @@ QString MainWindow::denormalizeUnits(QString value){
         QString unit_value = match.captured(2);
         if (unit_value == "0.0" || unit_value == "0"){
             out = "0";
+            qDebug() << "Denormalizing " << value << " to " << out;
             return out;
         }
         if (unit_value.toUpper() == "G"){ // "G" as unit
@@ -1216,18 +1217,62 @@ QString MainWindow::denormalizeUnits(QString value){
             out = "0";
         }
     }
+    qDebug() << "Denormalizing " << value << " to " << out;
     return out;
 }
 
 /*
  * NORMALIZE QUOTA VALUE
  * */
-QString MainWindow::normalizeUnits(QString value){
+QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromHumanUnits){
     QString out;
+    /* DEPRECATED 
     QRegularExpression number_with_unit("^(\\d+[.]?\\d*)[ ]*([gGmM])$");
     QRegularExpression number("^(\\d+[.]?\\d*)$");
+    */
+    
+    QRegularExpression integer("^(\\d+)[ gG]*");
     QRegularExpressionMatch match;
-
+/*  new case to allow normalize "quota applied" */
+    if (fromHumanUnits){
+	//qDebug() << "Normalizing 'Quota applied' from callback getConfigured (hardquota case)";
+	QRegularExpression number_with_unit("^(\\d+[.]?\\d*)[ ]*([gGmMkK])$");
+	match = number_with_unit.match(value);
+	if (match.hasMatch()){
+	    QString value_numeric = match.captured(1);
+	    QString value_unit = match.captured(2);
+	    if (value_unit.toUpper() == "G"){
+		    out = value_numeric;
+	    }
+	    if (value_unit.toUpper() == "M"){
+		    out = QString::number(value_numeric.toFloat()/1024,10,0);
+	    }
+	    if (value_unit.toUpper() == "K"){
+		    out = QString::number(value_numeric.toFloat()/1024/1024,10,0);
+	    }
+	    out = out + "G";
+	}
+    }else{
+/* default case: normalize data adding unit if user modify cell data (without conversion)
+   or normalize units with conversion if its n4d returned data from getconfigured */
+	
+        match = integer.match(value);
+        if (match.hasMatch()){
+             QString value_numeric = match.captured(1);
+	     if (conversion){
+		  //qDebug() << "Normalizing from user cell modification";
+	          value_numeric = QString::number(value_numeric.toFloat()/1024/1024,10,0);
+	     }
+	     //qDebug() << "Normalizing from callback getConfigured";
+             out = value_numeric + "G";
+	}else{
+             out = "0G";
+	}
+    }
+    //qDebug() << "Normalizing " << value << " to " << out;
+    return out;
+    
+    /* DEPRECATED 
     match = number_with_unit.match(value);
     if (match.hasMatch()){
         QString numeric_value = match.captured(1);
@@ -1261,15 +1306,30 @@ QString MainWindow::normalizeUnits(QString value){
         }
     }
     return out;
+    */
 }
 
 /*
  * CHECK VALID QUOTA VALUE, VALIDATES USER INPUT WHEN CHANGES ANY COLUMN
  * */
 bool MainWindow::isValidQuotaValue(QString value){
-    QRegularExpression number_with_unit("^\\d+[.]?\\d*[ ]*[gGmM]$");
-    QRegularExpression number("^\\d+[.]?\\d*$");
+//    QRegularExpression number_with_unit("^\\d+[.]?\\d*[ ]*[gGmM]$");
+//    QRegularExpression number("^\\d+[.]?\\d*$");
+
+//  New accepted values: only G as unit and integer values
+    QRegularExpression integer("^(\\d+)[ gG]*");
     QRegularExpressionMatch match;
+
+    match = integer.match(value);
+    if (match.hasMatch()){
+        int value_numeric = match.captured(1).toInt();
+        if (value_numeric >= 0 && value_numeric < 1000){
+            return true;
+        }
+    }
+    return false;
+    
+/*  Deprecated: allow real numbers with or without unit
 
     match = number_with_unit.match(value);
     if (match.hasMatch()){
@@ -1282,7 +1342,7 @@ bool MainWindow::isValidQuotaValue(QString value){
             return false;
         }
     }
-
+*/
 }
 
 /*
@@ -1293,7 +1353,7 @@ void MainWindow::CellChanged(int row, int col, QTableWidget* table){
         QString value = table->item(row,col)->text();
         QString key = table->verticalHeaderItem(row)->text();
         if (isValidQuotaValue(value)){
-            value = normalizeUnits(value);
+            value = normalizeUnits(value,false);
         }else{
             value = modelmap[table]->value(key).at(col);
             ui->statusBar->showMessage(tr("Invalid value"),5000);
