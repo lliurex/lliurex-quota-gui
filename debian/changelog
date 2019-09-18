@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.12) bionic; urgency=medium
+
+  * Use 'g' as default measure unit into quota's tabledata
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Wed, 18 Sep 2019 17:35:00 +0200
+
 lliurex-quota-gui (0.3.11) bionic; urgency=medium
 
   * Fix desktop location

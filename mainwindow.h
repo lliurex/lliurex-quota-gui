@@ -140,7 +140,7 @@ private:
     bool isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2);
     void showConfirmationTable();
 
-    QString normalizeUnits(QString value);
+    QString normalizeUnits(QString value,bool conversion=true,bool fromHumanUnits=false);
     QString denormalizeUnits(QString value);
     bool isValidQuotaValue(QString value);
     void CellChanged(int row, int col, QTableWidget* table);
