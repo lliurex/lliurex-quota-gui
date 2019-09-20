@@ -34,11 +34,56 @@
 #include <QCloseEvent>
 #include <QList>
 #include <QMap>
+#include <QSpinBox>
+
+#include <QLineEdit>
 
 #include <algorithm>
 #include <thread>
 #include <chrono>
 #include <time.h>
+#include <cmath>
+
+/*
+ * Custom Delegate for avoid to enter alpha data into editable table cells
+ * */
+CustomDelegatedInput::CustomDelegatedInput(QObject *parent): QStyledItemDelegate(parent)
+{
+}
+
+/*
+ * Override editor for editable cell data
+ * */
+QWidget *CustomDelegatedInput::createEditor(QWidget *parent, const QStyleOptionViewItem & /*option*/, const QModelIndex &/*index*/) const
+{
+    QSpinBox *editor = new QSpinBox(parent);
+    editor->setFrame(false);
+    editor->setMinimum(0);
+    editor->setMaximum(999);
+    return editor;
+}
+
+/*
+ * Write data from model to custom editor widget
+ * */
+void CustomDelegatedInput::setEditorData(QWidget *editor,const QModelIndex &index) const
+{
+    int value = index.model()->data(index,Qt::EditRole).toInt();
+    QSpinBox *spinbox = static_cast<QSpinBox*>(editor);
+    spinbox->setValue(value);
+}
+
+/*
+ * Write data from custom editor widget to model
+ * */
+void CustomDelegatedInput::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
+{
+    QSpinBox *spinbox = static_cast<QSpinBox*>(editor);
+    spinbox->interpretText();
+    QString value = QString::number(spinbox->value());
+
+    model->setData(index,value,Qt::EditRole);
+}
 
 /*
  * Constructors
@@ -48,6 +93,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    cdi = new CustomDelegatedInput();
     init_tray(this);
     init_structures(true);
     ChangePannel(ui->page_login);
@@ -66,7 +112,6 @@ void MainWindow::init_tray(QObject *parent){
         ShowAPP();
     }
 }
-
 
 void MainWindow::closeEvent(QCloseEvent *event){
     Q_UNUSED(event);
@@ -103,6 +148,9 @@ void MainWindow::init_structures(bool init_threads=true){
     pending_changes.clear();
 
     tablewidgets = {ui->tableGroupEdition,ui->table_pending,ui->tableUserEdition};
+
+    ui->tableGroupEdition->setItemDelegate(cdi);
+    ui->tableUserEdition->setItemDelegate(cdi);
     for (auto const& k: tablewidgets){
         enable_watch_table.insert(k,false);
         pending_changes.insert(k,false);
@@ -954,7 +1002,7 @@ void MainWindow::PopulateTable(QMap<QString,QStringList>* data, QTableWidget* ta
         QString k = keys.takeLast();
         m->insertRow(0);
         table->setVerticalHeaderItem(0,new QTableWidgetItem(k));
-        unsigned int i = 0;
+        int i = 0;
         for (auto const& j: data->value(k)){
             table->setItem(0,i,new QTableWidgetItem(j));
             table->item(0,i)->setTextAlignment(Qt::AlignCenter);
@@ -1194,14 +1242,14 @@ QString MainWindow::denormalizeUnits(QString value){
         }
         if (unit_value.toUpper() == "G"){ // "G" as unit
             if (numeric_value.contains(".")){
-                numeric_value = QString::number((numeric_value.toFloat() * 1024),10,0);
+                numeric_value = QString::number(static_cast<int>(round(numeric_value.toFloat() * 1024)),10,0);
                 out = numeric_value + "m";
             }else{
-                out = QString::number(numeric_value.toFloat() * 1024,10,0) + "m";
+                out = QString::number(static_cast<int>(round(numeric_value.toFloat() * 1024)),10,0) + "m";
             }
         }else{ // "M" as unit
             if (numeric_value.contains(".")){
-                numeric_value = QString::number(numeric_value.toFloat(),10,0);
+                numeric_value = QString::number(static_cast<int>(round(numeric_value.toFloat())),10,0);
             }else{
                 numeric_value = QString::number(numeric_value.toInt(),10,0);
                 out = numeric_value + "m";
@@ -1211,7 +1259,7 @@ QString MainWindow::denormalizeUnits(QString value){
         match = number.match(value);
         if (match.hasMatch()){
             QString numeric_value = match.captured(1);
-            numeric_value = QString::number(numeric_value.toFloat(),10,0);
+            numeric_value = QString::number(static_cast<int>(round(numeric_value.toFloat())),10,0);
             out = numeric_value + "k";
         }else{
             out = "0";
@@ -1245,10 +1293,10 @@ QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromHuma
 		    out = value_numeric;
 	    }
 	    if (value_unit.toUpper() == "M"){
-		    out = QString::number(value_numeric.toFloat()/1024,10,0);
+            out = QString::number(static_cast<int>(round(value_numeric.toFloat()/1024)),10,0);
 	    }
 	    if (value_unit.toUpper() == "K"){
-		    out = QString::number(value_numeric.toFloat()/1024/1024,10,0);
+            out = QString::number(static_cast<int>(round(value_numeric.toFloat()/1024/1024)),10,0);
 	    }
 	    out = out + "G";
 	}
@@ -1261,7 +1309,7 @@ QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromHuma
              QString value_numeric = match.captured(1);
 	     if (conversion){
 		  //qDebug() << "Normalizing from user cell modification";
-	          value_numeric = QString::number(value_numeric.toFloat()/1024/1024,10,0);
+              value_numeric = QString::number(static_cast<int>(round(value_numeric.toFloat()/1024/1024)),10,0);
 	     }
 	     //qDebug() << "Normalizing from callback getConfigured";
              out = value_numeric + "G";
@@ -1349,6 +1397,7 @@ bool MainWindow::isValidQuotaValue(QString value){
  * DO ACTIONS WHEN CHANGED TABLE CELLS SLOTS ARE TRIGGERED
  * */
 void MainWindow::CellChanged(int row, int col, QTableWidget* table){
+
     if (enable_watch_table.value(table)){
         QString value = table->item(row,col)->text();
         QString key = table->verticalHeaderItem(row)->text();
@@ -1371,6 +1420,10 @@ void MainWindow::CellChanged(int row, int col, QTableWidget* table){
     }
 }
 
+void MainWindow::CellModification(){
+    //QList<QTableWidgetItem *>
+    qDebug() << "Change to cell ";// << row << " " << col;
+}
 /*
  * ENABLE/DISABLE APPLY BUTTON
  * */

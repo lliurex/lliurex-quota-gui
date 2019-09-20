@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.13) bionic; urgency=medium
+
+  * Make table cells editable with integer values only
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Fri, 20 Sep 2019 14:46:21 +0200
+
 lliurex-quota-gui (0.3.12) bionic; urgency=medium
 
   * Use 'g' as default measure unit into quota's tabledata
