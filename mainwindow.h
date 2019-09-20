@@ -35,6 +35,9 @@
 #include <QSystemTrayIcon>
 #include <QMainWindow>
 
+#include <QStyledItemDelegate>
+#include <QWidget>
+
 #include <algorithm>
 #include <functional>
 
@@ -51,12 +54,22 @@ struct spin_obj_data {
     int timeout;
 };
 
+class CustomDelegatedInput : public QStyledItemDelegate
+{
+    Q_OBJECT
+public:
+    CustomDelegatedInput(QObject *parent = nullptr);
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    void setEditorData(QWidget *editor,const QModelIndex &index) const override;
+    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
+};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 protected:
@@ -77,6 +90,7 @@ public slots:
     void GoToResume();
     void CellChangedUserTable(int row,int col);
     void CellChangedGroupTable(int row, int col);
+    void CellModification();
     void PendingBack();
     void SwitchUserEdition();
     void SwitchGroupEdition();
@@ -91,6 +105,7 @@ public slots:
 private:
     void init_spin_wait(QPushButton* obj,int timeout,std::function<void (void)> f);
     Ui::MainWindow *ui;
+    CustomDelegatedInput *cdi;
 
     // System structures
     QSystemTrayIcon* tray;
