@@ -85,6 +85,19 @@ void CustomDelegatedInput::setModelData(QWidget *editor, QAbstractItemModel *mod
     model->setData(index,value,Qt::EditRole);
 }
 
+void CustomDelegatedInput::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+    QStyleOptionViewItem opt = option;
+    QString tmp;
+    initStyleOption(&opt,index);
+    qDebug() << index.data();
+    tmp = index.data().toString();
+    if (index.column() == 0){
+        opt.font.setBold(!tmp.startsWith("0"));
+    }
+    QStyledItemDelegate::paint(painter,opt,index);
+}
+
 /*
  * Constructors
  * */
@@ -733,7 +746,7 @@ void MainWindow::CompleteGetConfigure(QString result){
         int position1 = modelmap[ui->tableGroupEdition]->value("__HEADER__").indexOf(regexp1);
         map = modelmap.value(ui->tableGroupEdition);
         for (int i=0; i < groups.size(); i++){
-            QString value = normalizeUnits(result_groups[groups[i]].toMap()["quota"].toString());
+            QString value = normalizeUnits(result_groups[groups[i]].toMap()["quota"].toString(),true,false);
             QStringList tableitem;
             if (map->contains(groups[i])){
                 tableitem = map->value(groups[i]);
@@ -754,13 +767,13 @@ void MainWindow::CompleteGetConfigure(QString result){
         int position2 = modelmap[ui->tableUserEdition]->value("__HEADER__").indexOf(regexp2);
         map = modelmap.value(ui->tableUserEdition);
         for (int i=0; i < users.size(); i++){
-            QString value = normalizeUnits(result_users[users[i]].toMap()["quota"].toString());
+            QString value = normalizeUnits(result_users[users[i]].toMap()["quota"].toString(),true,false);
             QStringList tableitem;
             if (map->contains(users[i])){
                 tableitem = map->value(users[i]);
             }else{
                 for (int i=0; i<header_size2; i++){
-                    tableitem << "0G";
+                    tableitem << "0GiB";
                 }
             }
             tableitem.replace(position2,value);
@@ -792,14 +805,14 @@ void MainWindow::CompleteGetData(QString result){
         QStringList keys = result.keys();
         for (auto const& k: keys){
             QMap<QString,QVariant> user_data_quotas = result[k].toMap();
-            QString spaceused = user_data_quotas.value("spaceused").toString();
-            QString hardlimit = normalizeUnits(user_data_quotas.value("spacehardlimit").toString(),false,true);
+            QString spaceused = normalizeUnits(user_data_quotas.value("spaceused").toString(),false,false);
+            QString hardlimit = normalizeUnits(user_data_quotas.value("spacehardlimit").toString(),true,false);
             QStringList tableitem;
             if (map->contains(k)){
                 tableitem = map->value(k);
             }else{
                 for (int i=0; i<header_size; i++){
-                    tableitem << "0G";
+                    tableitem << "0GiB";
                 }
             }
             tableitem.replace(position_spaceused,spaceused);
@@ -1227,7 +1240,7 @@ void MainWindow::showConfirmationTable(){
  * */
 QString MainWindow::denormalizeUnits(QString value){
     QString out;
-    QRegularExpression number_with_unit("^(\\d+[.]?\\d*)[ ]*([gGmM])$");
+    QRegularExpression number_with_unit("^(\\d+[.]?\\d*)\\s*([gGmM])[iI ]*[bB ]*\\s*$");
     QRegularExpression number("^(\\d+[.]?\\d*)$");
     QRegularExpressionMatch match;
 
@@ -1235,7 +1248,7 @@ QString MainWindow::denormalizeUnits(QString value){
     if (match.hasMatch()){
         QString numeric_value = match.captured(1);
         QString unit_value = match.captured(2);
-        if (unit_value == "0.0" || unit_value == "0"){
+        if (numeric_value.startsWith("0")){
             out = "0";
             qDebug() << "Denormalizing " << value << " to " << out;
             return out;
@@ -1272,89 +1285,49 @@ QString MainWindow::denormalizeUnits(QString value){
 /*
  * NORMALIZE QUOTA VALUE
  * */
-QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromHumanUnits){
-    QString out;
-    /* DEPRECATED 
-    QRegularExpression number_with_unit("^(\\d+[.]?\\d*)[ ]*([gGmM])$");
-    QRegularExpression number("^(\\d+[.]?\\d*)$");
-    */
-    
-    QRegularExpression integer("^(\\d+)[ gG]*");
+QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromUser){
+    QString out_unit;
+    QString out_num;
     QRegularExpressionMatch match;
-/*  new case to allow normalize "quota applied" */
-    if (fromHumanUnits){
-	//qDebug() << "Normalizing 'Quota applied' from callback getConfigured (hardquota case)";
-	QRegularExpression number_with_unit("^(\\d+[.]?\\d*)[ ]*([gGmMkK])$");
-	match = number_with_unit.match(value);
-	if (match.hasMatch()){
-	    QString value_numeric = match.captured(1);
-	    QString value_unit = match.captured(2);
-	    if (value_unit.toUpper() == "G"){
-		    out = value_numeric;
-	    }
-	    if (value_unit.toUpper() == "M"){
-            out = QString::number(static_cast<int>(round(value_numeric.toFloat()/1024)),10,0);
-	    }
-	    if (value_unit.toUpper() == "K"){
-            out = QString::number(static_cast<int>(round(value_numeric.toFloat()/1024/1024)),10,0);
-	    }
-	    out = out + "G";
-	}
-    }else{
-/* default case: normalize data adding unit if user modify cell data (without conversion)
-   or normalize units with conversion if its n4d returned data from getconfigured */
-	
-        match = integer.match(value);
-        if (match.hasMatch()){
-             QString value_numeric = match.captured(1);
-	     if (conversion){
-		  //qDebug() << "Normalizing from user cell modification";
-              value_numeric = QString::number(static_cast<int>(round(value_numeric.toFloat()/1024/1024)),10,0);
-	     }
-	     //qDebug() << "Normalizing from callback getConfigured";
-             out = value_numeric + "G";
-	}else{
-             out = "0G";
-	}
-    }
-    //qDebug() << "Normalizing " << value << " to " << out;
-    return out;
-    
-    /* DEPRECATED 
-    match = number_with_unit.match(value);
-    if (match.hasMatch()){
-        QString numeric_value = match.captured(1);
-        QString unit_value = match.captured(2);
-        if (unit_value.toUpper() == "G"){ // "G" as unit
-            out = numeric_value + "G";
-        }else{ // "M" as unit
-            numeric_value = QString::number(numeric_value.toFloat() / 1024,10,2);
-            out = numeric_value + "G";
-        }
-    }else{
-        match = number.match(value);
-        if (match.hasMatch()){
-            QString numeric_value = match.captured(1);
-            float numeric_float = numeric_value.toFloat();
+    QRegularExpression number_with_unit("^(\\d+[.]?\\d*)\\s*([gGmMkK])?[iI ]*[bB ]*\\s*$");
 
-            if (numeric_float >= 1024){ // Assume "K" as unit (native mode)
-                numeric_value = QString::number(numeric_float/(1024*1024),10,2);
-            }else{
-                if (numeric_float <= 20){ // Assume "G" as unit
-                    numeric_value = QString::number(numeric_float,10,2);
-                }else{
-                    if (numeric_float > 20 && numeric_float < 1024){ // Assume "M" as unit
-                        numeric_value = QString::number(numeric_float/1024,10,2);
-                    }
-                }
-            }
-            out = numeric_value + "G";
-        }else{
-            out = "0";
-        }
+    match = number_with_unit.match(value);
+    if (!match.hasMatch()){
+        qDebug() << "Error no match " << value;
+        return "0GiB";
     }
-    return out;
-    */
+    QString value_numeric = match.captured(1);
+    QString value_unit = match.captured(2);
+    float float_numeric;
+
+    if (value_unit == ""){
+        if (fromUser){
+            value_unit = "G";
+        }else{
+            value_unit = "K";
+        }
+        qDebug() << "Error no unit" << value;
+    }
+
+    value_unit = value_unit.toUpper();
+    float_numeric = value_numeric.toFloat();
+
+    if (conversion){
+        if (value_unit == "G"){
+            float_numeric = float_numeric;
+        }else if (value_unit == "M") {
+            float_numeric = round(float_numeric/1024);
+        }else if (value_unit == "K") {
+            float_numeric = round(float_numeric/1024/1024);
+        }else {
+            float_numeric = 0.0;
+            qDebug() << "Error " << value_numeric;
+        }
+        value_unit="G";
+    }
+    out_num = QString::number(static_cast<int>(float_numeric),10,0);
+    out_unit = value_unit + "iB";
+    return out_num + out_unit;
 }
 
 /*
@@ -1402,7 +1375,7 @@ void MainWindow::CellChanged(int row, int col, QTableWidget* table){
         QString value = table->item(row,col)->text();
         QString key = table->verticalHeaderItem(row)->text();
         if (isValidQuotaValue(value)){
-            value = normalizeUnits(value,false);
+            value = normalizeUnits(value,false,true);
         }else{
             value = modelmap[table]->value(key).at(col);
             ui->statusBar->showMessage(tr("Invalid value"),5000);
