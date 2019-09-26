@@ -90,7 +90,6 @@ void CustomDelegatedInput::paint(QPainter *painter, const QStyleOptionViewItem &
     QStyleOptionViewItem opt = option;
     QString tmp;
     initStyleOption(&opt,index);
-    qDebug() << index.data();
     tmp = index.data().toString();
     if (index.column() == 0){
         opt.font.setBold(!tmp.startsWith("0"));
@@ -609,9 +608,13 @@ void MainWindow::InitN4DCall(QtN4DWorker::Methods method, QStringList params){
             connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(get_golem_groups()));
             break;
         case QtN4DWorker::Methods::ENABLE_SYSTEM:
+            ui->actionEnable->setDisabled(true);
+            ui->statusBar->showMessage(tr("Activating quota system... please wait..."),10000);
             connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(enable_system()));
             break;
         case QtN4DWorker::Methods::DISABLE_SYSTEM:
+            ui->actionDisable->setDisabled(true);
+            ui->statusBar->showMessage(tr("Disabling quota system... please wait..."),10000);
             connect(local_thread.value(i), SIGNAL(started()), worker, SLOT(disable_system()));
             break;
         case QtN4DWorker::Methods::SET_GROUP_QUOTA:
@@ -805,7 +808,7 @@ void MainWindow::CompleteGetData(QString result){
         QStringList keys = result.keys();
         for (auto const& k: keys){
             QMap<QString,QVariant> user_data_quotas = result[k].toMap();
-            QString spaceused = normalizeUnits(user_data_quotas.value("spaceused").toString(),false,false);
+            QString spaceused = normalizeUnits(user_data_quotas.value("spaceused").toString(),false,false,true);
             QString hardlimit = normalizeUnits(user_data_quotas.value("spacehardlimit").toString(),true,false);
             QStringList tableitem;
             if (map->contains(k)){
@@ -1285,7 +1288,7 @@ QString MainWindow::denormalizeUnits(QString value){
 /*
  * NORMALIZE QUOTA VALUE
  * */
-QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromUser){
+QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromUser, bool noBigUnits){
     QString out_unit;
     QString out_num;
     QRegularExpressionMatch match;
@@ -1293,7 +1296,6 @@ QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromUser
 
     match = number_with_unit.match(value);
     if (!match.hasMatch()){
-        qDebug() << "Error no match " << value;
         return "0GiB";
     }
     QString value_numeric = match.captured(1);
@@ -1306,7 +1308,6 @@ QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromUser
         }else{
             value_unit = "K";
         }
-        qDebug() << "Error no unit" << value;
     }
 
     value_unit = value_unit.toUpper();
@@ -1321,9 +1322,23 @@ QString MainWindow::normalizeUnits(QString value, bool conversion, bool fromUser
             float_numeric = round(float_numeric/1024/1024);
         }else {
             float_numeric = 0.0;
-            qDebug() << "Error " << value_numeric;
         }
         value_unit="G";
+    }
+    if (noBigUnits){
+        if (value_unit == "K"){
+            if (float_numeric > 1024.0){
+                float_numeric = float_numeric/1024;
+                value_unit = "M";
+            }
+        }
+        if (value_unit == "M"){
+            if (float_numeric > 1024.0){
+                float_numeric = float_numeric/1024;
+                value_unit = "G";
+            }
+        }
+        float_numeric = round(float_numeric);
     }
     out_num = QString::number(static_cast<int>(float_numeric),10,0);
     out_unit = value_unit + "iB";
