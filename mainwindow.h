@@ -36,6 +36,7 @@
 #include <QMainWindow>
 
 #include <QStyledItemDelegate>
+
 #include <QWidget>
 
 #include <algorithm>
@@ -62,6 +63,7 @@ public:
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     void setEditorData(QWidget *editor,const QModelIndex &index) const override;
     void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
+    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 };
 
 class MainWindow : public QMainWindow
@@ -155,7 +157,7 @@ private:
     bool isModified(QMap<QString,QStringList>* td1,QMap<QString,QStringList>* td2);
     void showConfirmationTable();
 
-    QString normalizeUnits(QString value,bool conversion=true,bool fromHumanUnits=false);
+    QString normalizeUnits(QString value,bool conversion=true, bool fromUser=false, bool noBigUnits=false);
     QString denormalizeUnits(QString value);
     bool isValidQuotaValue(QString value);
     void CellChanged(int row, int col, QTableWidget* table);

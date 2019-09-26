@@ -1,3 +1,12 @@
+lliurex-quota-gui (0.3.14) bionic; urgency=medium
+
+  * Bold text on modified editable cells
+  * New normalize method & rules
+  * Complete units with full name
+  * Disable action buttons while action is triggered
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Thu, 26 Sep 2019 10:04:43 +0200
+
 lliurex-quota-gui (0.3.13) bionic; urgency=medium
 
   * Make table cells editable with integer values only
