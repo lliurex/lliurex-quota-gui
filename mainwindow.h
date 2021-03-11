@@ -34,6 +34,7 @@
 #include <QMovie>
 #include <QSystemTrayIcon>
 #include <QMainWindow>
+#include <QString>
 
 #include <QStyledItemDelegate>
 
@@ -106,6 +107,7 @@ public slots:
     void HideAPP();
 private:
     void init_spin_wait(QPushButton* obj,int timeout,std::function<void (void)> f);
+    QString ConvertN4dCall(QString result);
     Ui::MainWindow *ui;
     CustomDelegatedInput *cdi;
 

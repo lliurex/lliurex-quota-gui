@@ -206,9 +206,9 @@ void MainWindow::PrepareTableMaps(){
         }else{
             map = new QMap<QString,QStringList>;
             if (t == ui->tableGroupEdition){
-                headers = QStringList::fromStdList({ tr("Quota") });
+                headers = QStringList({ tr("Quota") });
             }else{
-                headers = QStringList::fromStdList({ tr("Quota") , tr("Used") , tr("QuotaApplied") });
+                headers = QStringList({ tr("Quota") , tr("Used") , tr("QuotaApplied") });
             }
             map->insert("__HEADER__",headers);
             if (!modelmap.contains(t)){
@@ -225,6 +225,9 @@ void MainWindow::PrepareTableMaps(){
  * */
 void MainWindow::ProcessCallback(QtN4DWorker::Methods from, QString returned, int serial){
     Q_UNUSED(serial);
+    QString returned2 = ConvertN4dCall(returned);
+    qDebug() << "--- N4D translation: ---" << "\nA)" << returned << "\nB)" << returned2;
+    returned = returned2;
     if (!completedTasks.keys().contains(from)){
         completedTasks.insert(from,false);
     }
@@ -351,7 +354,7 @@ void MainWindow::PopulateGroupTableWithFilter(){
     if (ui->check_show_all_groups->isChecked()){
         filter_show.clear();
     }else{
-        filter_show = QStringList::fromStdList({"students","teachers","admins"});
+        filter_show = QStringList({"students","teachers","admins"});
         filter_show += golem_groups;
     }
     PopulateTableWithFilters(ui->tableGroupEdition,filter_show,QStringList(),ui->txt_filter_group_table,false);
@@ -371,7 +374,7 @@ void MainWindow::ResetGroupTable(){
     QStringList filter_remove;
     QStringList filter_show;
 
-    filter_show = QStringList::fromStdList({"students","teachers","admins"});
+    filter_show = QStringList({"students","teachers","admins"});
     filter_show += golem_groups;
     PopulateTableWithFilters(ui->tableGroupEdition,filter_show,filter_remove,ui->txt_filter_group_table,true);
 
@@ -696,6 +699,67 @@ void MainWindow::ChangePannel(QWidget* pannel){
     }
     ui->stackedWidget->setCurrentWidget(pannel);
 }
+
+/*
+ * CHECK NEW N4D CALL STATUS & CONVERT TO OLD FORMAT
+ * */
+ QString MainWindow::ConvertN4dCall(QString result){
+    QString ret;
+    QString result_kword = "string/return:";
+    if (n4dvalidator(result.toStdString(),"struct/{string/status:string/0}")){
+        QJsonDocument res = QJsonDocument::fromJson(n4dresult2json(result.toStdString()).data());
+        if (!res.isObject()){
+            ui->statusBar->showMessage(tr("Something goes wrong reading n4d call result: "),5000);
+        }else{
+            int idx = result.indexOf(result_kword);
+            if (idx < 0){
+                qDebug() << "Error checking result keyword";
+            } 
+            idx += result_kword.size();
+            bool started = false;
+            QString type;
+            QString kwordsign;
+            int stack = 0;
+            for (int i=idx; i<result.size(); i++){
+                if (started){
+                    switch (kwordsign.indexOf(result[i])){
+                        case -1:
+                            break;
+                        case 0:
+                            stack++;
+                            break;
+                        case 1:
+                            stack--;
+                            break;
+                    }
+                    if (stack == 0){
+                        ret += result[i];
+                        break;
+                    }
+                }else{
+                    if (result[i] == "/"){
+                        type = ret;
+                        started = true;
+                        if (type == "array"){
+                            kwordsign = "[]";
+                        }else{
+                            if (type == "struct"){
+                                kwordsign = "{}";
+                            }else{
+                                ret += result.mid(i,result.indexOf(",",i)-i);
+                                break;
+                            }
+                        }
+                    }
+                }
+                ret += result[i];
+            }
+        }
+    }else{
+        ui->statusBar->showMessage(tr("N4D Call failed!"),10000);
+    }
+    return ret;
+ }
 
 /*
  * CALLBACK FROM VALIDATION N4D CALL
