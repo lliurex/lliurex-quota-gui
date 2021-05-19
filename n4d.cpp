@@ -1171,9 +1171,13 @@ list<n4dtoken*> n4dtokenizer(string str){
         case '=':{
             n4dtoken* tok = new n4dtoken();
             tok->value="=";
+            /* quick 'n dirty fix bug for '=', commented '=' case dont work */
+            tok->value="";
+            //buffer = "";
+            /* end quick 'n dirty fix */
             tok->type=n4dtypetokens::OP_EQUAL;
             tokens.push_back(tok);
-            buffer = "";
+            buffer += str[i];
             break;
         }
         default:{
@@ -1184,6 +1188,7 @@ list<n4dtoken*> n4dtokenizer(string str){
 
         i++;
     }
+    
     if (buffer != ""){
         n4dtoken* tok = new n4dtoken();
         tok->value=buffer;
@@ -1197,8 +1202,19 @@ list<n4dtoken*> n4dtokenizer(string str){
     }
     if (str != returned){
         //cout << str << endl;
-        //cout << returned << endl;
-        cerr << "ERROR TOKENIZING !!";
+        //cout << returned << endl;       
+        cerr << endl << "ERROR TOKENIZING !!" << endl;
+        cerr << "------DEBUG-----" << endl;
+        cerr << "str:" << endl << str << endl;
+        cerr << "returned:" << endl << returned << endl;
+        for (int i=0; i<str.length(); i++){
+            if (str[i] != returned[i]){
+                cerr << "First difference on character: " << i <<  endl;
+                cerr << str.substr(0,i) << endl;
+                break;
+            }
+        }
+        cerr << "-----/DEBUG-----" << endl;
     }
     return tokens;
 }
