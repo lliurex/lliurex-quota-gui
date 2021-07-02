@@ -50,7 +50,7 @@
     <message>
         <location filename="mainwindow.ui" line="373"/>
         <source>This system need to be configured before you can edit something</source>
-        <translation>El sistema tiene que configurarse para poder editar las cuotas</translation>
+        <translation>El sistema tiene que activarse para poder editar las cuotas</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="504"/>
