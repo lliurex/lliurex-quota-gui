@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.15-focal) focal; urgency=medium
+
+  * Fix minor translations
+
+ -- M.Angel Juan <m.angel.juan@gmail.com>  Fri, 02 Jul 2021 11:11:23 +0200
+
 lliurex-quota-gui (0.3.14-focal) focal; urgency=medium
 
   * Focal release with new n4d methods
