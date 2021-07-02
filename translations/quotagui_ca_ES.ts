@@ -50,7 +50,7 @@
     <message>
         <location filename="mainwindow.ui" line="373"/>
         <source>This system need to be configured before you can edit something</source>
-        <translation>Cal configurar aquest sistema abans de poder editar-hi</translation>
+        <translation>Cal activar aquest sistema abans de poder editar-hi</translation>
     </message>
     <message>
         <location filename="mainwindow.ui" line="504"/>
