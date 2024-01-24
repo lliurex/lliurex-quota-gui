@@ -1,3 +1,9 @@
+lliurex-quota-gui (0.3.16-jammy) jammy; urgency=medium
+
+  * First jammy release 
+
+ -- Hector Garcia Huerta <hectorgh@gmail.com>  Wed, 24 Jan 2024 13:57:56 +0100
+
 lliurex-quota-gui (0.3.15-focal) focal; urgency=medium
 
   * Fix minor translations
